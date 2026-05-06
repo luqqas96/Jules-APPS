@@ -10,6 +10,7 @@ interface AppContextType {
   addEntry: (meal: MealType, entry: Omit<FoodEntry, "id" | "timestamp">) => void;
   removeEntry: (meal: MealType, entryId: string) => void;
   updateEntry: (meal: MealType, entryId: string, updatedEntry: Partial<FoodEntry>) => void;
+  updateAllMeals: (meals: Record<MealType, FoodEntry[]>) => void;
   clearDay: () => void;
   isLoaded: boolean;
 }
@@ -121,6 +122,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     saveDailyData(newData);
   };
 
+  const updateAllMeals = (meals: Record<MealType, FoodEntry[]>) => {
+    const newData = {
+      ...dailyData,
+      meals,
+    };
+    saveDailyData(newData);
+  };
+
   const clearDay = () => {
     const newData = { ...defaultDailyData, date: getTodayString() };
     saveDailyData(newData);
@@ -128,7 +137,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      macroGoals, setMacroGoals, dailyData, addEntry, removeEntry, updateEntry, clearDay, isLoaded
+      macroGoals, setMacroGoals, dailyData, addEntry, removeEntry, updateEntry, updateAllMeals, clearDay, isLoaded
     }}>
       {children}
     </AppContext.Provider>

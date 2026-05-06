@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MacroProgress } from "@/components/dashboard/MacroProgress";
 import { MealSection } from "@/components/dashboard/MealSection";
+import { AIAssistantBox } from "@/components/dashboard/AIAssistantBox";
 import { MealType } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
@@ -76,11 +77,13 @@ export default function Home() {
       <div className="p-4 max-w-md mx-auto">
         <MacroProgress />
 
-        <div className="space-y-4 mb-8">
+        <div className="space-y-4 mb-6">
           {(["Desayuno", "Almuerzo", "Merienda", "Cena"] as MealType[]).map((meal) => (
             <MealSection key={meal} mealType={meal} />
           ))}
         </div>
+
+        <AIAssistantBox />
 
         <Button
           variant="mint"
