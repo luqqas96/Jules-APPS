@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenAI } from '@google/genai';
-
-const ai = new GoogleGenAI({});
+import { GoogleGenAI, Type, Schema } from '@google/genai';
 
 export async function POST(request: Request) {
   try {
@@ -15,28 +13,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Falta configuración de API Key de Gemini' }, { status: 500 });
     }
 
-    const systemPrompt = `Eres un asistente de nutrición integrado en una aplicación de control de alimentos.
-Recibirás un objeto JSON llamado "currentMeals" que representa lo que el usuario ha comido hoy, categorizado por "Desayuno", "Almuerzo", "Merienda" y "Cena".
-También recibirás una instrucción del usuario (prompt) donde te pedirá modificar algo. Por ejemplo: "El mantecol del almuerzo solo comí la mitad (55g de los 111g)", o "Agrega 2 huevos a la cena", o "Borra el café de la merienda".
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-Tu trabajo es:
-1. Analizar la instrucción.
-2. Hacer los cálculos matemáticos necesarios. Si el usuario dice que comió la mitad de un producto que ya está registrado, debes dividir sus macros a la mitad y actualizar el nombre para reflejar la nueva porción.
-3. Si te piden agregar algo nuevo y no tienes los datos, estima los macros lo mejor posible.
-4. Devolver ÚNICAMENTE el nuevo objeto JSON completo de "meals" modificado.
-
-IMPORTANTE: El JSON debe seguir EXACTAMENTE esta estructura, sin texto adicional ni bloques de código markdown:
-{
-  "Desayuno": [ { "id": "string", "name": "string", "macros": { "calories": number, "protein": number, "carbs": number, "fats": number }, "timestamp": number } ],
-  "Almuerzo": [ ... ],
-  "Merienda": [ ... ],
-  "Cena": [ ... ]
-}
-
-Mantén los IDs y timestamps de los alimentos que no han sido modificados o eliminados. Para los alimentos nuevos, inventa un ID corto y un timestamp actual.`;
+    const systemPrompt = `Eres un asistente de nutrición.
+Recibes un objeto JSON "currentMeals" y una instrucción del usuario.
+Debes hacer los cálculos matemáticos solicitados (ej. si el usuario comió la mitad de la porción registrada, divide los macros a la mitad), agregar/quitar alimentos según se pida, y devolver TODOS los datos (modificados e intactos).`;
 
     const userMessage = `currentMeals: ${JSON.stringify(currentMeals)}
 Instrucción del usuario: ${prompt}`;
+
+    const macroSchema: Schema = {
+      type: Type.OBJECT,
+      properties: {
+        calories: { type: Type.NUMBER },
+        protein: { type: Type.NUMBER },
+        carbs: { type: Type.NUMBER },
+        fats: { type: Type.NUMBER },
+      },
+      required: ["calories", "protein", "carbs", "fats"]
+    };
+
+    const entrySchema: Schema = {
+      type: Type.OBJECT,
+      properties: {
+        id: { type: Type.STRING },
+        name: { type: Type.STRING },
+        macros: macroSchema,
+        timestamp: { type: Type.NUMBER }
+      },
+      required: ["id", "name", "macros", "timestamp"]
+    };
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.0-flash',
@@ -50,6 +56,16 @@ Instrucción del usuario: ${prompt}`;
       ],
       config: {
         responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            Desayuno: { type: Type.ARRAY, items: entrySchema },
+            Almuerzo: { type: Type.ARRAY, items: entrySchema },
+            Merienda: { type: Type.ARRAY, items: entrySchema },
+            Cena: { type: Type.ARRAY, items: entrySchema },
+          },
+          required: ["Desayuno", "Almuerzo", "Merienda", "Cena"]
+        }
       }
     });
 
@@ -65,8 +81,8 @@ Instrucción del usuario: ${prompt}`;
       console.error("Failed to parse Gemini response as JSON:", resultText);
       return NextResponse.json({ error: 'La IA devolvió un formato inválido.' }, { status: 500 });
     }
-  } catch (error) {
-    console.error('Error modifying meals with Gemini:', error);
-    return NextResponse.json({ error: 'Failed to process AI modification' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Error modifying meals with Gemini:', error.message || error);
+    return NextResponse.json({ error: error.message || 'Failed to process AI modification' }, { status: 500 });
   }
 }

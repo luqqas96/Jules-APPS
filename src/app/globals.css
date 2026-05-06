@@ -41,16 +41,20 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0D1410;
-    --foreground: #E2E8F0;
-    --surface: #131E15;
-    --surface-secondary: #1A2E1A;
+    --foreground: #F8FAF8;
+    --surface: #152218;
+    --surface-secondary: #1E3322;
     --border: #2D3748;
 
-    /* Slightly muted in dark mode */
-    --pixel-mint: #4CAF50;
-    --pixel-peach: #FF8A65;
-    --pixel-lavender: #9575CD;
-    --pixel-blue: #4FC3F7;
+    /* Brighter accents for better visibility in dark mode */
+    --pixel-mint: #81C784;
+    --pixel-mint-light: #2E4C33;
+    --pixel-peach: #FFAB91;
+    --pixel-peach-light: #4A322C;
+    --pixel-lavender: #B39DDB;
+    --pixel-lavender-light: #362D4A;
+    --pixel-blue: #81D4FA;
+    --pixel-blue-light: #233D4A;
   }
 }
 

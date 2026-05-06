@@ -41,17 +41,17 @@ export function AIAssistantBox() {
   };
 
   return (
-    <Card className="mb-6 p-4 border-none shadow-sm bg-gradient-to-r from-pixel-mint-light to-pixel-blue-light">
-      <div className="flex items-center space-x-2 mb-3 text-pixel-foreground font-semibold">
-        <SparklesIcon className="w-5 h-5 text-pixel-blue" />
+    <Card className="mb-6 p-4 border-none shadow-sm bg-surface-secondary">
+      <div className="flex items-center space-x-2 mb-3 text-foreground font-semibold">
+        <SparklesIcon className="w-5 h-5 text-pixel-mint" />
         <span>Asistente Inteligente</span>
       </div>
-      <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+      <p className="text-xs text-foreground/70 mb-3 leading-relaxed">
         Pide ajustar porciones (ej. &quot;Comí la mitad del mantecol&quot;), sumar nuevos alimentos o corregir errores usando lenguaje natural.
       </p>
       <div className="flex space-x-2">
         <Input
-          className="bg-surface border-transparent shadow-sm flex-1 text-sm h-10 rounded-xl"
+          className="bg-surface border border-border shadow-sm flex-1 text-sm h-10 rounded-xl"
           placeholder="Ej: El mantecol del almuerzo fue de 55g..."
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
