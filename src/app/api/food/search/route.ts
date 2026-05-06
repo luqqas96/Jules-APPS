@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { GoogleGenAI, Type, Schema } from '@google/genai';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -9,29 +10,59 @@ export async function GET(request: Request) {
   }
 
   try {
-    // We use Spanish localized OpenFoodFacts for better results
-    const url = `https://es.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=1`;
-    const res = await fetch(url);
-    const data = await res.json();
-
-    if (!data.products || data.products.length === 0) {
-      return NextResponse.json({ error: 'No se encontraron resultados' }, { status: 404 });
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json({ error: 'Falta configuración de API Key de Gemini' }, { status: 500 });
     }
 
-    const product = data.products[0];
-    const nutriments = product.nutriments || {};
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-    return NextResponse.json({
-      name: product.product_name_es || product.product_name || query,
-      macros: {
-        calories: nutriments['energy-kcal_100g'] || nutriments['energy-kcal_value'] || 0,
-        protein: nutriments.proteins_100g || nutriments.proteins_value || 0,
-        carbs: nutriments.carbohydrates_100g || nutriments.carbohydrates_value || 0,
-        fats: nutriments.fat_100g || nutriments.fat_value || 0,
+    const prompt = `Busca en tu base de datos información nutricional sobre el producto o alimento: "${query}".
+Devuelve una lista de 3 a 5 opciones que mejor coincidan con esta búsqueda (diferentes marcas, variantes o tipos genéricos si no encuentras la marca exacta).
+Para CADA opción, proporciona los valores nutricionales SIEMPRE calculados para una porción estándar de 100 gramos.
+Responde estrictamente en el formato JSON indicado.`;
+
+    const macroSchema: Schema = {
+      type: Type.OBJECT,
+      properties: {
+        calories: { type: Type.NUMBER },
+        protein: { type: Type.NUMBER },
+        carbs: { type: Type.NUMBER },
+        fats: { type: Type.NUMBER },
+      },
+      required: ["calories", "protein", "carbs", "fats"]
+    };
+
+    const itemSchema: Schema = {
+      type: Type.OBJECT,
+      properties: {
+        name: { type: Type.STRING },
+        macros: macroSchema
+      },
+      required: ["name", "macros"]
+    };
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-pro',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: itemSchema,
+        }
       }
     });
-  } catch (error) {
-    console.error('Error fetching OpenFoodFacts:', error);
-    return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
+
+    const resultText = response.text;
+    if (!resultText) {
+      throw new Error("No response from Gemini");
+    }
+
+    const parsed = JSON.parse(resultText);
+    return NextResponse.json(parsed);
+
+  } catch (error: any) {
+    console.error('Error fetching food data from Gemini:', error.message || error);
+    return NextResponse.json({ error: 'Error al buscar el producto' }, { status: 500 });
   }
 }

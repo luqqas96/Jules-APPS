@@ -26,6 +26,8 @@ function AddFoodForm() {
 
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Partial<FoodEntry> | null>(null);
+  const [searchResultsList, setSearchResultsList] = useState<Partial<FoodEntry>[] | null>(null);
+  const [grams, setGrams] = useState<number>(100);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -33,11 +35,16 @@ function AddFoodForm() {
     if (!searchQuery) return;
     setLoading(true);
     setResults(null);
+    setSearchResultsList(null);
     try {
       const res = await fetch(`/api/food/search?q=${encodeURIComponent(searchQuery)}`);
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && Array.isArray(data)) {
+        setSearchResultsList(data);
+      } else if (res.ok && !Array.isArray(data)) {
+        // Fallback si la API devuelve un solo objeto
         setResults(data);
+        setGrams(100);
       } else {
         alert(data.error || "Error al buscar");
       }
@@ -46,6 +53,12 @@ function AddFoodForm() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSelectSearchResult = (item: Partial<FoodEntry>) => {
+    setResults(item);
+    setSearchResultsList(null);
+    setGrams(100);
   };
 
   const handleBarcodeResult = async (barcode: string) => {
@@ -58,6 +71,8 @@ function AddFoodForm() {
       const data = await res.json();
       if (res.ok) {
         setResults(data);
+        setSearchResultsList(null);
+        setGrams(100);
       } else {
         alert(data.error || "Producto no encontrado");
       }
@@ -87,6 +102,8 @@ function AddFoodForm() {
       const data = await res.json();
       if (res.ok) {
         setResults(data);
+        setSearchResultsList(null);
+        setGrams(100); // Para imágenes, trataremos el "100" como "100%" o "1 porción"
       } else {
         alert(data.error || "Error al analizar imagen");
       }
@@ -99,7 +116,17 @@ function AddFoodForm() {
 
   const saveEntry = () => {
     if (results && results.macros && results.name) {
-      addEntry(meal, { name: results.name, macros: results.macros });
+      const multiplier = grams / 100;
+      const scaledMacros = {
+        calories: Math.round(results.macros.calories * multiplier),
+        protein: Math.round(results.macros.protein * multiplier),
+        carbs: Math.round(results.macros.carbs * multiplier),
+        fats: Math.round(results.macros.fats * multiplier),
+      };
+
+      const displayName = grams !== 100 ? `${results.name} (${grams}g)` : results.name;
+
+      addEntry(meal, { name: displayName, macros: scaledMacros });
       router.push("/");
     }
   };
@@ -185,27 +212,62 @@ function AddFoodForm() {
         </div>
       )}
 
-      {results && !loading && mode === "text" && (
+      {!loading && searchResultsList && searchResultsList.length > 0 && mode === "text" && !results && (
+        <div className="mt-6 space-y-3 animate-in fade-in slide-in-from-bottom-4">
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">Selecciona una opción:</h3>
+          {searchResultsList.map((item, idx) => (
+            <Card key={idx} className="cursor-pointer hover:bg-surface-secondary transition-colors" onClick={() => handleSelectSearchResult(item)}>
+              <CardContent className="p-4 flex justify-between items-center">
+                <div className="flex-1 pr-4">
+                  <h4 className="font-semibold text-sm line-clamp-2">{item.name}</h4>
+                  <div className="flex space-x-3 mt-1 text-xs text-muted-foreground">
+                    <span>{item.macros?.calories} kcal</span>
+                    <span>P: {item.macros?.protein}g</span>
+                    <span>C: {item.macros?.carbs}g</span>
+                    <span>G: {item.macros?.fats}g</span>
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground text-right w-16">
+                  por 100g
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {results && !loading && (
         <Card className="mt-8 bg-surface animate-in fade-in slide-in-from-bottom-4">
           <CardContent className="p-6">
             <h3 className="font-semibold text-lg mb-4">{results.name}</h3>
 
+            <div className="mb-6 flex items-center space-x-3">
+              <label className="text-sm font-medium whitespace-nowrap">Cantidad (g):</label>
+              <Input
+                type="number"
+                min="1"
+                value={grams}
+                onChange={(e) => setGrams(Math.max(1, parseInt(e.target.value) || 0))}
+                className="w-24 text-center"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-pixel-mint-light p-3 rounded-2xl">
                 <p className="text-xs text-muted-foreground">Calorías</p>
-                <p className="font-bold text-xl">{results.macros?.calories} <span className="text-sm font-normal">kcal</span></p>
+                <p className="font-bold text-xl">{Math.round((results.macros?.calories || 0) * (grams / 100))} <span className="text-sm font-normal">kcal</span></p>
               </div>
               <div className="bg-pixel-peach-light p-3 rounded-2xl">
                 <p className="text-xs text-muted-foreground">Proteínas</p>
-                <p className="font-bold text-xl">{results.macros?.protein} <span className="text-sm font-normal">g</span></p>
+                <p className="font-bold text-xl">{Math.round((results.macros?.protein || 0) * (grams / 100))} <span className="text-sm font-normal">g</span></p>
               </div>
               <div className="bg-pixel-blue-light p-3 rounded-2xl">
                 <p className="text-xs text-muted-foreground">Carbos</p>
-                <p className="font-bold text-xl">{results.macros?.carbs} <span className="text-sm font-normal">g</span></p>
+                <p className="font-bold text-xl">{Math.round((results.macros?.carbs || 0) * (grams / 100))} <span className="text-sm font-normal">g</span></p>
               </div>
               <div className="bg-pixel-lavender-light p-3 rounded-2xl">
                 <p className="text-xs text-muted-foreground">Grasas</p>
-                <p className="font-bold text-xl">{results.macros?.fats} <span className="text-sm font-normal">g</span></p>
+                <p className="font-bold text-xl">{Math.round((results.macros?.fats || 0) * (grams / 100))} <span className="text-sm font-normal">g</span></p>
               </div>
             </div>
 
