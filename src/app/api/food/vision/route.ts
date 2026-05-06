@@ -35,7 +35,7 @@ Responde ÚNICAMENTE en formato JSON estricto con esta estructura, sin bloques d
 }`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-1.5-pro',
       contents: [
         {
           role: 'user',
