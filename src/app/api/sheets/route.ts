@@ -81,18 +81,20 @@ export async function POST(request: Request) {
     // If there's an AI adjustment or something, we could add it, but currently the AI directly modifies the entries.
     // So all items are already represented in 'meals'.
 
-    if (rows.length === 0) {
-       return NextResponse.json({ error: 'No hay alimentos para guardar' }, { status: 400 });
+    if (rows.length === 0 && !weight) {
+       return NextResponse.json({ error: 'No hay datos para guardar' }, { status: 400 });
     }
 
-    await sheets.spreadsheets.values.append({
-      spreadsheetId,
-      range: 'Principal!A:H',
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: rows,
-      },
-    });
+    if (rows.length > 0) {
+      await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range: 'Principal!A:H',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: rows,
+        },
+      });
+    }
 
 
     if (weight) {

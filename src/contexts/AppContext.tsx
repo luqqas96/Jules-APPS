@@ -155,7 +155,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const setDailyWeight = (weight: number) => {
-    const newData = { ...dailyData, weight };
+    const newData = { ...dailyData, weight: { value: weight, date: new Date().toISOString() } };
     saveDailyData(newData);
   };
 

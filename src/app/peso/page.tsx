@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export default function PesoPage() {
   const { dailyData, setDailyWeight } = useAppContext();
-  const [weight, setWeight] = useState(dailyData.weight?.toString() || "");
+  const [weight, setWeight] = useState(dailyData.weight?.value?.toString() || "");
 
   const handleSave = () => {
     const val = parseFloat(weight);
@@ -59,9 +59,24 @@ export default function PesoPage() {
             </Button>
 
             {dailyData.weight && (
-              <p className="mt-4 text-sm text-green-600 font-medium">
-                Peso actual guardado: {dailyData.weight} kg
-              </p>
+              <div className="mt-6 w-full bg-pixel-mint-light/30 border border-pixel-mint/30 rounded-2xl p-4 animate-in fade-in slide-in-from-bottom-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Último Registro</p>
+                    <p className="text-2xl font-bold text-foreground">{dailyData.weight.value} <span className="text-sm font-medium text-muted-foreground">kg</span></p>
+                  </div>
+                  <div className="text-right">
+                    <div className="bg-surface p-2 rounded-xl shadow-sm border border-border/50">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        {new Date(dailyData.weight.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {new Date(dailyData.weight.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
