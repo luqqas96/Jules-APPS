@@ -13,6 +13,7 @@ interface AppContextType {
   updateAllMeals: (meals: Record<MealType, FoodEntry[]>) => void;
   clearDay: () => void;
   isLoaded: boolean;
+  foodHistory: Omit<FoodEntry, "id" | "timestamp" | "grams" | "macros">[];
 }
 
 const defaultGoals: Macros = {
@@ -40,13 +41,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [macroGoals, setMacroGoalsState] = useState<Macros>(defaultGoals);
   const [dailyData, setDailyDataState] = useState<DailyData>(defaultDailyData);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [foodHistory, setFoodHistoryState] = useState<Omit<FoodEntry, "id" | "timestamp" | "grams" | "macros">[]>([]);
 
   useEffect(() => {
     // Load from local storage
     const storedGoals = localStorage.getItem("pixel-tracker-goals");
     if (storedGoals) {
       try {
-        setMacroGoalsState(JSON.parse(storedGoals));
+                setMacroGoalsState(JSON.parse(storedGoals));
       } catch (e) {
         console.error("Failed to parse goals", e);
       }
@@ -59,15 +61,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // If it's a new day, we should probably start fresh or keep previous?
         // Requirements say clear screen after finishing day.
         if (parsed.date === getTodayString()) {
-           setDailyDataState(parsed);
+                      setDailyDataState(parsed);
         } else {
            // It's a new day, start fresh.
-           setDailyDataState({ ...defaultDailyData, date: getTodayString() });
+                      setDailyDataState({ ...defaultDailyData, date: getTodayString() });
         }
       } catch (e) {
         console.error("Failed to parse daily data", e);
       }
     }
+
+    const storedHistory = localStorage.getItem("pixel-tracker-history");
+    if (storedHistory) {
+      try {
+                setFoodHistoryState(JSON.parse(storedHistory));
+      } catch (e) {
+        console.error("Failed to parse history data", e);
+      }
+    }
+
     setIsLoaded(true);
   }, []);
 
@@ -96,6 +108,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
     };
     saveDailyData(newData);
+
+    // Add to history
+    const baseName = entry.name.replace(/\s*\(\d+g\)$/, '');
+    setFoodHistoryState(prev => {
+      const exists = prev.some(item => item.name === baseName);
+      if (exists) return prev;
+      const newHistory = [{ name: baseName, baseMacros: entry.baseMacros }, ...prev].slice(0, 50); // Keep last 50
+      localStorage.setItem("pixel-tracker-history", JSON.stringify(newHistory));
+      return newHistory;
+    });
+
   };
 
   const removeEntry = (meal: MealType, entryId: string) => {
@@ -137,7 +160,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      macroGoals, setMacroGoals, dailyData, addEntry, removeEntry, updateEntry, updateAllMeals, clearDay, isLoaded
+      macroGoals, setMacroGoals, dailyData, addEntry, removeEntry, updateEntry, updateAllMeals, clearDay, isLoaded, foodHistory
     }}>
       {children}
     </AppContext.Provider>

@@ -18,7 +18,7 @@ function AddFoodForm() {
   const mealParam = searchParams.get("meal") as MealType | null;
   const initialMeal = mealParam || "Desayuno";
 
-  const { addEntry } = useAppContext();
+  const { addEntry, foodHistory } = useAppContext();
 
   const [mode, setMode] = useState<InputMode>("text");
   const [meal, setMeal] = useState<MealType>(initialMeal);
@@ -198,6 +198,32 @@ function AddFoodForm() {
           </div>
         </div>
       )}
+
+
+      {!loading && mode === "text" && !results && (!searchResultsList || searchResultsList.length === 0) && foodHistory && foodHistory.length > 0 && (
+        <div className="mt-6 space-y-3 animate-in fade-in slide-in-from-bottom-4">
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">Recientes:</h3>
+          {foodHistory.map((item, idx) => (
+            <Card key={idx} className="cursor-pointer hover:bg-surface-secondary transition-colors" onClick={() => handleSelectSearchResult({ name: item.name, macros: item.baseMacros })}>
+              <CardContent className="p-4 flex justify-between items-center">
+                <div className="flex-1 pr-4">
+                  <h4 className="font-semibold text-sm line-clamp-2">{item.name}</h4>
+                  <div className="flex space-x-3 mt-1 text-xs text-muted-foreground">
+                    <span>{item.baseMacros?.calories} kcal</span>
+                    <span>P: {item.baseMacros?.protein}g</span>
+                    <span>C: {item.baseMacros?.carbs}g</span>
+                    <span>G: {item.baseMacros?.fats}g</span>
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground text-right w-16">
+                  por 100g
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
 
       {mode === "barcode" && (
         <div className="mt-4">

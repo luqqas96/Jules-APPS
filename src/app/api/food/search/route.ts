@@ -10,11 +10,24 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Usamos OpenFoodFacts (gratuito, sin límite de cuota IA) y pedimos 10 resultados
-    // Usamos /api/v2/search que devuelve JSON garantizado en vez de cgi/search.pl que a veces falla
-    const url = `https://world.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(query)}&page_size=10&fields=product_name,product_name_es,brands,nutriments`;
-    const res = await fetch(url, { cache: 'no-store' });
-    const data = await res.json();
+    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=20`;
+
+    const res = await fetch(url, {
+        cache: 'no-store',
+        headers: {
+            'User-Agent': 'NutritionTrackerApp - Web - Version 1.0 - https://github.com/'
+        }
+    });
+
+    const text = await res.text();
+    let data;
+
+    try {
+        data = JSON.parse(text);
+    } catch (e) {
+        console.error("OpenFoodFacts returned non-JSON:", text.substring(0, 100));
+        return NextResponse.json({ error: 'El servicio de búsqueda no está disponible en este momento.' }, { status: 503 });
+    }
 
     if (!data.products || data.products.length === 0) {
       return NextResponse.json({ error: 'No se encontraron resultados para esta búsqueda.' }, { status: 404 });
