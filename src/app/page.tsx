@@ -37,6 +37,7 @@ export default function Home() {
       const payload = {
         date: dailyData.date,
         meals: dailyData.meals,
+        weight: dailyData.weight,
         totals
       };
 

@@ -12,6 +12,7 @@ interface AppContextType {
   updateEntry: (meal: MealType, entryId: string, updatedEntry: Partial<FoodEntry>) => void;
   updateAllMeals: (meals: Record<MealType, FoodEntry[]>) => void;
   clearDay: () => void;
+  setDailyWeight: (weight: number) => void;
   isLoaded: boolean;
   foodHistory: Omit<FoodEntry, "id" | "timestamp" | "grams" | "macros">[];
 }
@@ -153,6 +154,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     saveDailyData(newData);
   };
 
+  const setDailyWeight = (weight: number) => {
+    const newData = { ...dailyData, weight };
+    saveDailyData(newData);
+  };
+
   const clearDay = () => {
     const newData = { ...defaultDailyData, date: getTodayString() };
     saveDailyData(newData);
@@ -160,7 +166,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      macroGoals, setMacroGoals, dailyData, addEntry, removeEntry, updateEntry, updateAllMeals, clearDay, isLoaded, foodHistory
+      macroGoals, setMacroGoals, dailyData, addEntry, removeEntry, updateEntry, updateAllMeals, clearDay, isLoaded, foodHistory, setDailyWeight
     }}>
       {children}
     </AppContext.Provider>

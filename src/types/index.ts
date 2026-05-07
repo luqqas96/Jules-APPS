@@ -24,4 +24,5 @@ export interface MealData {
 export interface DailyData {
   date: string;
   meals: Record<MealType, FoodEntry[]>;
+  weight?: number | null;
 }
