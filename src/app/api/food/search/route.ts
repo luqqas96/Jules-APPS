@@ -63,6 +63,6 @@ Responde estrictamente en el formato JSON indicado.`;
 
   } catch (error: any) {
     console.error('Error fetching food data from Gemini:', error.message || error);
-    return NextResponse.json({ error: 'Error al buscar el producto' }, { status: 500 });
+    return NextResponse.json({ error: `Error: ${error.message || error}` }, { status: 500 });
   }
 }
