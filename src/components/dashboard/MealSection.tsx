@@ -12,8 +12,10 @@ import { Input } from "@/components/ui/input";
 
 export function MealSection({ mealType }: { mealType: MealType }) {
   const [expanded, setExpanded] = useState(false);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editGrams, setEditGrams] = useState<number>(0);
+  const [editBaseMacros, setEditBaseMacros] = useState<{calories: number, protein: number, carbs: number, fats: number} | null>(null);
   const { dailyData, removeEntry, updateEntry } = useAppContext();
   const router = useRouter();
 
@@ -22,37 +24,40 @@ export function MealSection({ mealType }: { mealType: MealType }) {
 
   const startEditing = (entry: FoodEntry) => {
     setEditingId(entry.id);
-    // If it has baseMacros, it was added with the new structure.
-    // If not, we assume it's legacy and editing grams is not supported or we default to 100g.
     setEditGrams(entry.grams || 100);
+    if (entry.baseMacros) {
+      setEditBaseMacros({...entry.baseMacros});
+    } else {
+      setEditBaseMacros(null);
+    }
   };
 
   const saveEditing = (entry: FoodEntry) => {
-    if (!entry.baseMacros) {
+    if (!editBaseMacros) {
       setEditingId(null);
-      return; // Cannot edit legacy entries easily without original macros
+      return;
     }
 
     const multiplier = editGrams / 100;
     const scaledMacros = {
-      calories: Math.round(entry.baseMacros.calories * multiplier),
-      protein: Math.round(entry.baseMacros.protein * multiplier),
-      carbs: Math.round(entry.baseMacros.carbs * multiplier),
-      fats: Math.round(entry.baseMacros.fats * multiplier),
+      calories: Math.round(editBaseMacros.calories * multiplier),
+      protein: Math.round(editBaseMacros.protein * multiplier),
+      carbs: Math.round(editBaseMacros.carbs * multiplier),
+      fats: Math.round(editBaseMacros.fats * multiplier),
     };
 
-    // Attempt to update the name to reflect new grams if it was previously set.
-    // Remove old (Xg) suffix if it exists and add new one.
     const baseName = entry.name.replace(/\s*\(\d+g\)$/, '');
     const newName = editGrams !== 100 ? `${baseName} (${editGrams}g)` : baseName;
 
     updateEntry(mealType, entry.id, {
       name: newName,
       grams: editGrams,
-      macros: scaledMacros
+      macros: scaledMacros,
+      baseMacros: editBaseMacros
     });
     setEditingId(null);
   };
+
 
   return (
     <Card className="mb-4 overflow-hidden border-none shadow-sm bg-surface">
@@ -90,33 +95,63 @@ export function MealSection({ mealType }: { mealType: MealType }) {
               {entries.map((entry) => (
                 <li key={entry.id} className="flex flex-col bg-surface-secondary p-3 rounded-2xl">
                   {editingId === entry.id ? (
-                    <div className="flex flex-col space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium text-sm line-clamp-1 flex-1">{entry.name.replace(/\s*\(\d+g\)$/, '')}</span>
-                        <div className="flex space-x-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500" onClick={() => saveEditing(entry)}>
+
+
+                    <div className="flex flex-col space-y-3 w-full">
+                      <div className="flex justify-between items-center w-full">
+                        <span className="font-medium text-sm line-clamp-1 flex-1 pr-2">{entry.name.replace(/\s*\(\d+g\)$/, '')}</span>
+                        <div className="flex space-x-1 flex-shrink-0">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-green-500 hover:text-green-600 hover:bg-green-50" onClick={() => saveEditing(entry)}>
                             <CheckIcon className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400" onClick={() => setEditingId(null)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-500 hover:bg-gray-100" onClick={() => setEditingId(null)}>
                             <XMarkIcon className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
+
                       <div className="flex items-center space-x-2">
+                        <label className="text-xs font-medium w-14">Gramos:</label>
                         <Input
                           type="number"
                           value={editGrams}
                           onChange={(e) => setEditGrams(Math.max(1, parseInt(e.target.value) || 0))}
                           className="w-20 h-8 text-sm px-2"
                         />
-                        <span className="text-sm text-muted-foreground">g</span>
                       </div>
-                      {entry.baseMacros && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Preview: {Math.round(entry.baseMacros.calories * (editGrams / 100))} kcal • P: {Math.round(entry.baseMacros.protein * (editGrams / 100))}g
+
+                      {editBaseMacros && (
+                        <div className="bg-surface p-3 rounded-xl border border-surface-secondary shadow-sm mt-2">
+                           <p className="text-[10px] text-muted-foreground mb-3 text-center uppercase tracking-wider font-semibold">Editar Valores Base (por 100g)</p>
+                           <div className="grid grid-cols-4 gap-2">
+                             <div className="flex flex-col items-center">
+                               <label className="text-[10px] text-muted-foreground mb-1">Kcal</label>
+                               <Input type="number" className="h-8 text-xs px-1 text-center font-medium" value={editBaseMacros.calories} onChange={(e) => setEditBaseMacros({...editBaseMacros, calories: parseInt(e.target.value) || 0})} />
+                             </div>
+                             <div className="flex flex-col items-center">
+                               <label className="text-[10px] text-muted-foreground mb-1">Prot(g)</label>
+                               <Input type="number" className="h-8 text-xs px-1 text-center font-medium" value={editBaseMacros.protein} onChange={(e) => setEditBaseMacros({...editBaseMacros, protein: parseInt(e.target.value) || 0})} />
+                             </div>
+                             <div className="flex flex-col items-center">
+                               <label className="text-[10px] text-muted-foreground mb-1">Carb(g)</label>
+                               <Input type="number" className="h-8 text-xs px-1 text-center font-medium" value={editBaseMacros.carbs} onChange={(e) => setEditBaseMacros({...editBaseMacros, carbs: parseInt(e.target.value) || 0})} />
+                             </div>
+                             <div className="flex flex-col items-center">
+                               <label className="text-[10px] text-muted-foreground mb-1">Gras(g)</label>
+                               <Input type="number" className="h-8 text-xs px-1 text-center font-medium" value={editBaseMacros.fats} onChange={(e) => setEditBaseMacros({...editBaseMacros, fats: parseInt(e.target.value) || 0})} />
+                             </div>
+                           </div>
+                        </div>
+                      )}
+
+                      {editBaseMacros && (
+                        <p className="text-xs text-center text-muted-foreground mt-2 font-medium bg-surface-secondary/50 py-1.5 rounded-lg">
+                          Vista previa: {Math.round(editBaseMacros.calories * (editGrams / 100))} kcal • P: {Math.round(editBaseMacros.protein * (editGrams / 100))}g
                         </p>
                       )}
                     </div>
+
+
                   ) : (
                     <div className="flex justify-between items-center">
                       <div className="flex-1">

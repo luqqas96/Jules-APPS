@@ -2,7 +2,7 @@
 
 import { useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CameraIcon, QrCodeIcon, MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { PencilSquareIcon, PencilIcon, QrCodeIcon, MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useAppContext } from "@/contexts/AppContext";
 import { MealType, FoodEntry } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import BarcodeScanner from "@/components/add/BarcodeScanner";
 
-type InputMode = "text" | "barcode" | "photo";
+type InputMode = "text" | "barcode" | "manual";
 
 function AddFoodForm() {
   const router = useRouter();
@@ -28,8 +28,8 @@ function AddFoodForm() {
   const [results, setResults] = useState<Partial<FoodEntry> | null>(null);
   const [searchResultsList, setSearchResultsList] = useState<Partial<FoodEntry>[] | null>(null);
   const [grams, setGrams] = useState<number>(100);
+  const [manualForm, setManualForm] = useState({ name: "", calories: 0, protein: 0, carbs: 0, fats: 0 });
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleTextSearch = async () => {
     if (!searchQuery) return;
@@ -83,36 +83,6 @@ function AddFoodForm() {
     }
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setLoading(true);
-    setResults(null);
-    setMode("text"); // return to standard view
-
-    const formData = new FormData();
-    formData.append("image", file);
-
-    try {
-      const res = await fetch("/api/food/vision", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setResults(data);
-        setSearchResultsList(null);
-        setGrams(100); // Para imágenes, trataremos el "100" como "100%" o "1 porción"
-      } else {
-        alert(data.error || "Error al analizar imagen");
-      }
-    } catch (e) {
-      alert("Error de conexión");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const saveEntry = () => {
     if (results && results.macros && results.name) {
@@ -166,24 +136,13 @@ function AddFoodForm() {
           <QrCodeIcon className="w-4 h-4 mr-2" /> Escanear
         </button>
         <button
-          className={`flex-1 flex justify-center items-center py-2 text-sm font-medium rounded-full transition-colors ${mode === "photo" ? "bg-surface shadow-sm text-foreground" : "text-muted-foreground"}`}
-          onClick={() => {
-             setMode("photo");
-             fileInputRef.current?.click();
-          }}
+          className={`flex-1 flex justify-center items-center py-2 text-sm font-medium rounded-full transition-colors ${mode === "manual" ? "bg-surface shadow-sm text-foreground" : "text-muted-foreground"}`}
+          onClick={() => setMode("manual")}
         >
-          <CameraIcon className="w-4 h-4 mr-2" /> Foto
+          <PencilSquareIcon className="w-4 h-4 mr-2" /> Propio
         </button>
       </div>
 
-      <input
-        type="file"
-        accept="image/*"
-        capture="environment"
-        ref={fileInputRef}
-        className="hidden"
-        onChange={handlePhotoUpload}
-      />
 
       {mode === "text" && (
         <div className="space-y-4">
@@ -222,6 +181,65 @@ function AddFoodForm() {
             </Card>
           ))}
         </div>
+      )}
+
+
+
+      {mode === "manual" && !results && (
+        <Card className="mt-4 bg-surface animate-in fade-in">
+          <CardContent className="p-6 space-y-4">
+            <h3 className="font-semibold text-lg text-center mb-2">Crear Alimento Propio</h3>
+            <p className="text-xs text-muted-foreground text-center mb-4">Ingresa los valores nutricionales por cada 100g (o 1 porción base).</p>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Nombre del producto</label>
+              <Input
+                placeholder="Ej. Torta casera"
+                value={manualForm.name}
+                onChange={(e) => setManualForm({...manualForm, name: e.target.value})}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Calorías (kcal)</label>
+                <Input type="number" min="0" value={manualForm.calories || ''} onChange={(e) => setManualForm({...manualForm, calories: parseInt(e.target.value) || 0})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Proteínas (g)</label>
+                <Input type="number" min="0" value={manualForm.protein || ''} onChange={(e) => setManualForm({...manualForm, protein: parseInt(e.target.value) || 0})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Carbohidratos (g)</label>
+                <Input type="number" min="0" value={manualForm.carbs || ''} onChange={(e) => setManualForm({...manualForm, carbs: parseInt(e.target.value) || 0})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Grasas (g)</label>
+                <Input type="number" min="0" value={manualForm.fats || ''} onChange={(e) => setManualForm({...manualForm, fats: parseInt(e.target.value) || 0})} />
+              </div>
+            </div>
+
+            <Button
+              className="w-full mt-4"
+              variant="mint"
+              disabled={!manualForm.name}
+              onClick={() => {
+                setResults({
+                  name: manualForm.name,
+                  macros: {
+                    calories: manualForm.calories,
+                    protein: manualForm.protein,
+                    carbs: manualForm.carbs,
+                    fats: manualForm.fats
+                  }
+                });
+                setGrams(100);
+              }}
+            >
+              Continuar
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
 
