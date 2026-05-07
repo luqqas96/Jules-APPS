@@ -15,6 +15,7 @@ interface AppContextType {
   setDailyWeight: (weight: number) => void;
   isLoaded: boolean;
   foodHistory: Omit<FoodEntry, "id" | "timestamp" | "grams" | "macros">[];
+  weightHistory: { value: number; date: string }[];
 }
 
 const defaultGoals: Macros = {
@@ -43,6 +44,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [dailyData, setDailyDataState] = useState<DailyData>(defaultDailyData);
   const [isLoaded, setIsLoaded] = useState(false);
   const [foodHistory, setFoodHistoryState] = useState<Omit<FoodEntry, "id" | "timestamp" | "grams" | "macros">[]>([]);
+  const [weightHistory, setWeightHistoryState] = useState<{ value: number; date: string }[]>([]);
 
   useEffect(() => {
     // Load from local storage
@@ -78,6 +80,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 setFoodHistoryState(JSON.parse(storedHistory));
       } catch (e) {
         console.error("Failed to parse history data", e);
+      }
+    }
+
+
+    const storedWeightHistory = localStorage.getItem("pixel-tracker-weight-history");
+    if (storedWeightHistory) {
+      try {
+        setWeightHistoryState(JSON.parse(storedWeightHistory));
+      } catch (e) {
+        console.error("Failed to parse weight history data", e);
       }
     }
 
@@ -155,8 +167,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const setDailyWeight = (weight: number) => {
-    const newData = { ...dailyData, weight: { value: weight, date: new Date().toISOString() } };
+    const newEntry = { value: weight, date: new Date().toISOString() };
+    const newData = { ...dailyData, weight: newEntry };
     saveDailyData(newData);
+
+    setWeightHistoryState(prev => {
+      const today = new Date().toISOString().split('T')[0];
+      // Filter out any previous entry for today
+      const filtered = prev.filter(w => !w.date.startsWith(today));
+      // Add new entry to the top, keep last 7
+      const newHistory = [newEntry, ...filtered].slice(0, 7);
+      localStorage.setItem("pixel-tracker-weight-history", JSON.stringify(newHistory));
+      return newHistory;
+    });
   };
 
   const clearDay = () => {
@@ -166,7 +189,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      macroGoals, setMacroGoals, dailyData, addEntry, removeEntry, updateEntry, updateAllMeals, clearDay, isLoaded, foodHistory, setDailyWeight
+      macroGoals, setMacroGoals, dailyData, addEntry, removeEntry, updateEntry, updateAllMeals, clearDay, isLoaded, foodHistory, setDailyWeight, weightHistory
     }}>
       {children}
     </AppContext.Provider>

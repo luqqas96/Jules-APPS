@@ -14,8 +14,8 @@ export function MealSection({ mealType }: { mealType: MealType }) {
   const [expanded, setExpanded] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editGrams, setEditGrams] = useState<number>(0);
-  const [editBaseMacros, setEditBaseMacros] = useState<{calories: number, protein: number, carbs: number, fats: number} | null>(null);
+  const [editGrams, setEditGrams] = useState<string>("0");
+  const [editBaseMacros, setEditBaseMacros] = useState<{calories: string, protein: string, carbs: string, fats: string} | null>(null);
   const { dailyData, removeEntry, updateEntry } = useAppContext();
   const router = useRouter();
 
@@ -24,9 +24,14 @@ export function MealSection({ mealType }: { mealType: MealType }) {
 
   const startEditing = (entry: FoodEntry) => {
     setEditingId(entry.id);
-    setEditGrams(entry.grams || 100);
+    setEditGrams((entry.grams || 100).toString());
     if (entry.baseMacros) {
-      setEditBaseMacros({...entry.baseMacros});
+      setEditBaseMacros({
+        calories: entry.baseMacros.calories.toString(),
+        protein: entry.baseMacros.protein.toString(),
+        carbs: entry.baseMacros.carbs.toString(),
+        fats: entry.baseMacros.fats.toString()
+      });
     } else {
       setEditBaseMacros(null);
     }
@@ -38,22 +43,31 @@ export function MealSection({ mealType }: { mealType: MealType }) {
       return;
     }
 
-    const multiplier = editGrams / 100;
-    const scaledMacros = {
-      calories: Math.round(editBaseMacros.calories * multiplier),
-      protein: Math.round(editBaseMacros.protein * multiplier),
-      carbs: Math.round(editBaseMacros.carbs * multiplier),
-      fats: Math.round(editBaseMacros.fats * multiplier),
+    const parsedGrams = parseFloat(editGrams) || 0;
+    const multiplier = parsedGrams / 100;
+
+    const parsedBase = {
+      calories: parseFloat(editBaseMacros.calories) || 0,
+      protein: parseFloat(editBaseMacros.protein) || 0,
+      carbs: parseFloat(editBaseMacros.carbs) || 0,
+      fats: parseFloat(editBaseMacros.fats) || 0
     };
 
-    const baseName = entry.name.replace(/\s*\(\d+g\)$/, '');
-    const newName = editGrams !== 100 ? `${baseName} (${editGrams}g)` : baseName;
+    const scaledMacros = {
+      calories: Math.round(parsedBase.calories * multiplier),
+      protein: Number((parsedBase.protein * multiplier).toFixed(1)),
+      carbs: Number((parsedBase.carbs * multiplier).toFixed(1)),
+      fats: Number((parsedBase.fats * multiplier).toFixed(1)),
+    };
+
+    const baseName = entry.name.replace(/\s*\([\d\.]+g\)$/, '');
+    const newName = parsedGrams !== 100 ? `${baseName} (${parsedGrams}g)` : baseName;
 
     updateEntry(mealType, entry.id, {
       name: newName,
-      grams: editGrams,
+      grams: parsedGrams,
       macros: scaledMacros,
-      baseMacros: editBaseMacros
+      baseMacros: parsedBase
     });
     setEditingId(null);
   };
@@ -115,7 +129,7 @@ export function MealSection({ mealType }: { mealType: MealType }) {
                         <Input
                           type="number"
                           value={editGrams}
-                          onChange={(e) => setEditGrams(Math.max(1, parseInt(e.target.value) || 0))}
+                          onChange={(e) => setEditGrams(e.target.value)}
                           className="w-20 h-8 text-sm px-2"
                         />
                       </div>
@@ -126,19 +140,19 @@ export function MealSection({ mealType }: { mealType: MealType }) {
                            <div className="grid grid-cols-4 gap-2">
                              <div className="flex flex-col items-center">
                                <label className="text-[10px] text-muted-foreground mb-1">Kcal</label>
-                               <Input type="number" className="h-8 text-xs px-1 text-center font-medium" value={editBaseMacros.calories} onChange={(e) => setEditBaseMacros({...editBaseMacros, calories: parseInt(e.target.value) || 0})} />
+                               <Input type="number" step="0.1" className="h-8 text-xs px-1 text-center font-medium" value={editBaseMacros.calories} onChange={(e) => setEditBaseMacros({...editBaseMacros, calories: e.target.value})} />
                              </div>
                              <div className="flex flex-col items-center">
                                <label className="text-[10px] text-muted-foreground mb-1">Prot(g)</label>
-                               <Input type="number" className="h-8 text-xs px-1 text-center font-medium" value={editBaseMacros.protein} onChange={(e) => setEditBaseMacros({...editBaseMacros, protein: parseInt(e.target.value) || 0})} />
+                               <Input type="number" step="0.1" className="h-8 text-xs px-1 text-center font-medium" value={editBaseMacros.protein} onChange={(e) => setEditBaseMacros({...editBaseMacros, protein: e.target.value})} />
                              </div>
                              <div className="flex flex-col items-center">
                                <label className="text-[10px] text-muted-foreground mb-1">Carb(g)</label>
-                               <Input type="number" className="h-8 text-xs px-1 text-center font-medium" value={editBaseMacros.carbs} onChange={(e) => setEditBaseMacros({...editBaseMacros, carbs: parseInt(e.target.value) || 0})} />
+                               <Input type="number" step="0.1" className="h-8 text-xs px-1 text-center font-medium" value={editBaseMacros.carbs} onChange={(e) => setEditBaseMacros({...editBaseMacros, carbs: e.target.value})} />
                              </div>
                              <div className="flex flex-col items-center">
                                <label className="text-[10px] text-muted-foreground mb-1">Gras(g)</label>
-                               <Input type="number" className="h-8 text-xs px-1 text-center font-medium" value={editBaseMacros.fats} onChange={(e) => setEditBaseMacros({...editBaseMacros, fats: parseInt(e.target.value) || 0})} />
+                               <Input type="number" step="0.1" className="h-8 text-xs px-1 text-center font-medium" value={editBaseMacros.fats} onChange={(e) => setEditBaseMacros({...editBaseMacros, fats: e.target.value})} />
                              </div>
                            </div>
                         </div>
@@ -146,7 +160,7 @@ export function MealSection({ mealType }: { mealType: MealType }) {
 
                       {editBaseMacros && (
                         <p className="text-xs text-center text-muted-foreground mt-2 font-medium bg-surface-secondary/50 py-1.5 rounded-lg">
-                          Vista previa: {Math.round(editBaseMacros.calories * (editGrams / 100))} kcal • P: {Math.round(editBaseMacros.protein * (editGrams / 100))}g
+                          Vista previa: {Math.round((parseFloat(editBaseMacros.calories)||0) * ((parseFloat(editGrams)||0) / 100))} kcal • P: {((parseFloat(editBaseMacros.protein)||0) * ((parseFloat(editGrams)||0) / 100)).toFixed(1)}g
                         </p>
                       )}
                     </div>

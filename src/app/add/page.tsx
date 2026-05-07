@@ -27,8 +27,8 @@ function AddFoodForm() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Partial<FoodEntry> | null>(null);
   const [searchResultsList, setSearchResultsList] = useState<Partial<FoodEntry>[] | null>(null);
-  const [grams, setGrams] = useState<number>(100);
-  const [manualForm, setManualForm] = useState({ name: "", calories: 0, protein: 0, carbs: 0, fats: 0 });
+  const [grams, setGrams] = useState<string>("100");
+  const [manualForm, setManualForm] = useState({ name: "", calories: "", protein: "", carbs: "", fats: "" });
 
 
   const handleTextSearch = async () => {
@@ -44,7 +44,7 @@ function AddFoodForm() {
       } else if (res.ok && !Array.isArray(data)) {
         // Fallback si la API devuelve un solo objeto
         setResults(data);
-        setGrams(100);
+        setGrams("100");
       } else {
         alert(data.error || "Error al buscar");
       }
@@ -58,7 +58,7 @@ function AddFoodForm() {
   const handleSelectSearchResult = (item: Partial<FoodEntry>) => {
     setResults(item);
     setSearchResultsList(null);
-    setGrams(100);
+    setGrams("100");
   };
 
   const handleBarcodeResult = async (barcode: string) => {
@@ -72,7 +72,7 @@ function AddFoodForm() {
       if (res.ok) {
         setResults(data);
         setSearchResultsList(null);
-        setGrams(100);
+        setGrams("100");
       } else {
         alert(data.error || "Producto no encontrado");
       }
@@ -86,17 +86,18 @@ function AddFoodForm() {
 
   const saveEntry = () => {
     if (results && results.macros && results.name) {
-      const multiplier = grams / 100;
+      const parsedGrams = parseFloat(grams) || 0;
+      const multiplier = parsedGrams / 100;
       const scaledMacros = {
         calories: Math.round(results.macros.calories * multiplier),
-        protein: Math.round(results.macros.protein * multiplier),
-        carbs: Math.round(results.macros.carbs * multiplier),
-        fats: Math.round(results.macros.fats * multiplier),
+        protein: Number((results.macros.protein * multiplier).toFixed(1)),
+        carbs: Number((results.macros.carbs * multiplier).toFixed(1)),
+        fats: Number((results.macros.fats * multiplier).toFixed(1)),
       };
 
-      const displayName = grams !== 100 ? `${results.name} (${grams}g)` : results.name;
+      const displayName = parsedGrams !== 100 ? `${results.name} (${parsedGrams}g)` : results.name;
 
-      addEntry(meal, { name: displayName, macros: scaledMacros, baseMacros: results.macros, grams: grams });
+      addEntry(meal, { name: displayName, macros: scaledMacros, baseMacros: results.macros, grams: parsedGrams });
       router.push("/");
     }
   };
@@ -200,22 +201,23 @@ function AddFoodForm() {
               />
             </div>
 
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Calorías (kcal)</label>
-                <Input type="number" min="0" value={manualForm.calories || ''} onChange={(e) => setManualForm({...manualForm, calories: parseInt(e.target.value) || 0})} />
+                <Input type="number" step="0.1" min="0" value={manualForm.calories} onChange={(e) => setManualForm({...manualForm, calories: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Proteínas (g)</label>
-                <Input type="number" min="0" value={manualForm.protein || ''} onChange={(e) => setManualForm({...manualForm, protein: parseInt(e.target.value) || 0})} />
+                <Input type="number" step="0.1" min="0" value={manualForm.protein} onChange={(e) => setManualForm({...manualForm, protein: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Carbohidratos (g)</label>
-                <Input type="number" min="0" value={manualForm.carbs || ''} onChange={(e) => setManualForm({...manualForm, carbs: parseInt(e.target.value) || 0})} />
+                <Input type="number" step="0.1" min="0" value={manualForm.carbs} onChange={(e) => setManualForm({...manualForm, carbs: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Grasas (g)</label>
-                <Input type="number" min="0" value={manualForm.fats || ''} onChange={(e) => setManualForm({...manualForm, fats: parseInt(e.target.value) || 0})} />
+                <Input type="number" step="0.1" min="0" value={manualForm.fats} onChange={(e) => setManualForm({...manualForm, fats: e.target.value})} />
               </div>
             </div>
 
@@ -227,13 +229,13 @@ function AddFoodForm() {
                 setResults({
                   name: manualForm.name,
                   macros: {
-                    calories: manualForm.calories,
-                    protein: manualForm.protein,
-                    carbs: manualForm.carbs,
-                    fats: manualForm.fats
+                    calories: parseFloat(manualForm.calories) || 0,
+                    protein: parseFloat(manualForm.protein) || 0,
+                    carbs: parseFloat(manualForm.carbs) || 0,
+                    fats: parseFloat(manualForm.fats) || 0
                   }
                 });
-                setGrams(100);
+                setGrams("100");
               }}
             >
               Continuar
@@ -289,9 +291,10 @@ function AddFoodForm() {
               <label className="text-sm font-medium whitespace-nowrap">Cantidad (g):</label>
               <Input
                 type="number"
-                min="1"
+                step="0.1"
+                min="0"
                 value={grams}
-                onChange={(e) => setGrams(Math.max(1, parseInt(e.target.value) || 0))}
+                onChange={(e) => setGrams(e.target.value)}
                 className="w-24 text-center"
               />
             </div>
@@ -299,19 +302,19 @@ function AddFoodForm() {
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-pixel-mint-light p-3 rounded-2xl">
                 <p className="text-xs text-muted-foreground">Calorías</p>
-                <p className="font-bold text-xl">{Math.round((results.macros?.calories || 0) * (grams / 100))} <span className="text-sm font-normal">kcal</span></p>
+                <p className="font-bold text-xl">{Math.round((results.macros?.calories || 0) * ((parseFloat(grams) || 0) / 100))} <span className="text-sm font-normal">kcal</span></p>
               </div>
               <div className="bg-pixel-peach-light p-3 rounded-2xl">
                 <p className="text-xs text-muted-foreground">Proteínas</p>
-                <p className="font-bold text-xl">{Math.round((results.macros?.protein || 0) * (grams / 100))} <span className="text-sm font-normal">g</span></p>
+                <p className="font-bold text-xl">{((results.macros?.protein || 0) * ((parseFloat(grams) || 0) / 100)).toFixed(1)} <span className="text-sm font-normal">g</span></p>
               </div>
               <div className="bg-pixel-blue-light p-3 rounded-2xl">
                 <p className="text-xs text-muted-foreground">Carbos</p>
-                <p className="font-bold text-xl">{Math.round((results.macros?.carbs || 0) * (grams / 100))} <span className="text-sm font-normal">g</span></p>
+                <p className="font-bold text-xl">{((results.macros?.carbs || 0) * ((parseFloat(grams) || 0) / 100)).toFixed(1)} <span className="text-sm font-normal">g</span></p>
               </div>
               <div className="bg-pixel-lavender-light p-3 rounded-2xl">
                 <p className="text-xs text-muted-foreground">Grasas</p>
-                <p className="font-bold text-xl">{Math.round((results.macros?.fats || 0) * (grams / 100))} <span className="text-sm font-normal">g</span></p>
+                <p className="font-bold text-xl">{((results.macros?.fats || 0) * ((parseFloat(grams) || 0) / 100)).toFixed(1)} <span className="text-sm font-normal">g</span></p>
               </div>
             </div>
 

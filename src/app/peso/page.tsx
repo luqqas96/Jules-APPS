@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function PesoPage() {
-  const { dailyData, setDailyWeight } = useAppContext();
+  const { dailyData, setDailyWeight, weightHistory } = useAppContext();
   const [weight, setWeight] = useState(dailyData.weight?.value?.toString() || "");
 
   const handleSave = () => {
@@ -19,6 +19,7 @@ export default function PesoPage() {
       alert("Por favor ingresa un peso válido.");
     }
   };
+
 
   return (
     <main className="min-h-screen bg-background pb-24">
@@ -58,23 +59,30 @@ export default function PesoPage() {
               Guardar Peso
             </Button>
 
-            {dailyData.weight && (
-              <div className="mt-6 w-full bg-pixel-mint-light/30 border border-pixel-mint/30 rounded-2xl p-4 animate-in fade-in slide-in-from-bottom-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Último Registro</p>
-                    <p className="text-2xl font-bold text-foreground">{dailyData.weight.value} <span className="text-sm font-medium text-muted-foreground">kg</span></p>
-                  </div>
-                  <div className="text-right">
-                    <div className="bg-surface p-2 rounded-xl shadow-sm border border-border/50">
-                      <p className="text-xs font-medium text-muted-foreground">
-                        {new Date(dailyData.weight.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {new Date(dailyData.weight.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                      </p>
+            {weightHistory && weightHistory.length > 0 && (
+              <div className="mt-8 w-full animate-in fade-in slide-in-from-bottom-2">
+                <h3 className="text-sm font-semibold text-foreground mb-4 pl-1">Historial (últimos 7 días)</h3>
+                <div className="space-y-3">
+                  {weightHistory.map((entry, idx) => (
+                    <div key={idx} className={`flex items-center justify-between p-4 rounded-2xl border ${idx === 0 ? 'bg-pixel-mint-light/40 border-pixel-mint/40 shadow-sm' : 'bg-surface border-border/50'}`}>
+                      <div>
+                        {idx === 0 && <p className="text-[10px] text-green-700 uppercase tracking-wider font-bold mb-0.5">Último Registro</p>}
+                        <p className="text-xl font-bold text-foreground">{entry.value} <span className="text-xs font-medium text-muted-foreground">kg</span></p>
+                      </div>
+                      <div className="text-right">
+                        <div className={`${idx === 0 ? 'bg-surface shadow-sm' : 'bg-surface-secondary'} px-3 py-1.5 rounded-xl`}>
+                          <p className="text-xs font-medium text-muted-foreground">
+                            {new Date(entry.date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+                          </p>
+                          {idx === 0 && (
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              {new Date(entry.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             )}
