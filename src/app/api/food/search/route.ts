@@ -1,5 +1,5 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { GoogleGenAI, Type, Schema } from '@google/genai';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -10,59 +10,38 @@ export async function GET(request: Request) {
   }
 
   try {
-    if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json({ error: 'Falta configuración de API Key de Gemini' }, { status: 500 });
+    // Usamos OpenFoodFacts (gratuito, sin límite de cuota IA) y pedimos 10 resultados
+    // Usamos /api/v2/search que devuelve JSON garantizado en vez de cgi/search.pl que a veces falla
+    const url = `https://world.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(query)}&page_size=10&fields=product_name,product_name_es,brands,nutriments`;
+    const res = await fetch(url, { cache: 'no-store' });
+    const data = await res.json();
+
+    if (!data.products || data.products.length === 0) {
+      return NextResponse.json({ error: 'No se encontraron resultados para esta búsqueda.' }, { status: 404 });
     }
 
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const results = data.products
+      .filter((p: Record<string, any>) => p.product_name || p.product_name_es) // Filtrar los que no tienen nombre
+      .map((product: Record<string, any>) => {
+        const nutriments = product.nutriments || {};
+        return {
+          name: product.product_name_es || product.product_name || query,
+          brand: product.brands || '',
+          macros: {
+            calories: Math.round(nutriments['energy-kcal_100g'] || nutriments['energy-kcal_value'] || 0),
+            protein: Math.round(nutriments.proteins_100g || nutriments.proteins_value || 0),
+            carbs: Math.round(nutriments.carbohydrates_100g || nutriments.carbohydrates_value || 0),
+            fats: Math.round(nutriments.fat_100g || nutriments.fat_value || 0),
+          }
+        };
+      });
 
-    const prompt = `Busca en tu base de datos información nutricional sobre el producto o alimento: "${query}".
-Devuelve una lista de 3 a 5 opciones que mejor coincidan con esta búsqueda (diferentes marcas, variantes o tipos genéricos si no encuentras la marca exacta).
-Para CADA opción, proporciona los valores nutricionales SIEMPRE calculados para una porción estándar de 100 gramos.
-Responde estrictamente en el formato JSON indicado.`;
+    // Remover duplicados exactos de nombre para limpiar la lista
+    const uniqueResults = Array.from(new Map(results.map((item: Record<string, any>) => [item.name, item])).values());
 
-    const macroSchema: Schema = {
-      type: Type.OBJECT,
-      properties: {
-        calories: { type: Type.NUMBER },
-        protein: { type: Type.NUMBER },
-        carbs: { type: Type.NUMBER },
-        fats: { type: Type.NUMBER },
-      },
-      required: ["calories", "protein", "carbs", "fats"]
-    };
-
-    const itemSchema: Schema = {
-      type: Type.OBJECT,
-      properties: {
-        name: { type: Type.STRING },
-        macros: macroSchema
-      },
-      required: ["name", "macros"]
-    };
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-pro',
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: itemSchema,
-        }
-      }
-    });
-
-    const resultText = response.text;
-    if (!resultText) {
-      throw new Error("No response from Gemini");
-    }
-
-    const parsed = JSON.parse(resultText);
-    return NextResponse.json(parsed);
-
-  } catch (error: any) {
-    console.error('Error fetching food data from Gemini:', error.message || error);
-    return NextResponse.json({ error: `Error: ${error.message || error}` }, { status: 500 });
+    return NextResponse.json(uniqueResults.slice(0, 5)); // Devolver los 5 mejores resultados
+  } catch (error: unknown) {
+    console.error('Error fetching OpenFoodFacts:', (error instanceof Error ? error.message : "Unknown error") || error);
+    return NextResponse.json({ error: `Error: ${(error instanceof Error ? error.message : "Unknown error") || error}` }, { status: 500 });
   }
 }

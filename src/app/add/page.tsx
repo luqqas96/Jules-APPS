@@ -126,7 +126,7 @@ function AddFoodForm() {
 
       const displayName = grams !== 100 ? `${results.name} (${grams}g)` : results.name;
 
-      addEntry(meal, { name: displayName, macros: scaledMacros });
+      addEntry(meal, { name: displayName, macros: scaledMacros, baseMacros: results.macros, grams: grams });
       router.push("/");
     }
   };

@@ -9,6 +9,8 @@ export interface FoodEntry {
   id: string;
   name: string;
   macros: Macros;
+  baseMacros: Macros; // The macros per 100g (or the base unit)
+  grams: number;      // The amount of grams the user consumed
   timestamp: number;
 }
 
