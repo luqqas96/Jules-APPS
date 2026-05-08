@@ -20,12 +20,12 @@ export function BottomNav() {
               <div className="bg-pixel-mint-light/50 px-4 py-1 rounded-full">
                 <HomeIconSolid className="w-6 h-6 text-pixel-mint" />
               </div>
-              <span className="text-[10px] font-semibold text-foreground">Principal</span>
+              <span className="text-[10px] font-semibold text-foreground">Home</span>
             </>
           ) : (
             <>
               <HomeIcon className="w-6 h-6 text-muted-foreground" />
-              <span className="text-[10px] text-muted-foreground">Principal</span>
+              <span className="text-[10px] text-muted-foreground">Home</span>
             </>
           )}
         </Link>
@@ -37,12 +37,12 @@ export function BottomNav() {
               <div className="bg-pixel-peach-light/50 px-4 py-1 rounded-full">
                 <CalendarIconSolid className="w-6 h-6 text-pixel-peach" />
               </div>
-              <span className="text-[10px] font-semibold text-foreground">Historial</span>
+              <span className="text-[10px] font-semibold text-foreground">History</span>
             </>
           ) : (
             <>
               <CalendarIcon className="w-6 h-6 text-muted-foreground" />
-              <span className="text-[10px] text-muted-foreground">Historial</span>
+              <span className="text-[10px] text-muted-foreground">History</span>
             </>
           )}
         </Link>
@@ -53,12 +53,12 @@ export function BottomNav() {
               <div className="bg-pixel-blue-light/50 px-4 py-1 rounded-full">
                 <ScaleIconSolid className="w-6 h-6 text-pixel-blue" />
               </div>
-              <span className="text-[10px] font-semibold text-foreground">Peso Diario</span>
+              <span className="text-[10px] font-semibold text-foreground">Daily Weight</span>
             </>
           ) : (
             <>
               <ScaleIcon className="w-6 h-6 text-muted-foreground" />
-              <span className="text-[10px] text-muted-foreground">Peso Diario</span>
+              <span className="text-[10px] text-muted-foreground">Daily Weight</span>
             </>
           )}
         </Link>
@@ -69,12 +69,12 @@ export function BottomNav() {
               <div className="bg-pixel-lavender-light/50 px-4 py-1 rounded-full">
                 <ChartBarIconSolid className="w-6 h-6 text-pixel-lavender" />
               </div>
-              <span className="text-[10px] font-semibold text-foreground">Estadísticas</span>
+              <span className="text-[10px] font-semibold text-foreground">Statistics</span>
             </>
           ) : (
             <>
               <ChartBarIcon className="w-6 h-6 text-muted-foreground" />
-              <span className="text-[10px] text-muted-foreground">Estadísticas</span>
+              <span className="text-[10px] text-muted-foreground">Statistics</span>
             </>
           )}
         </Link>
