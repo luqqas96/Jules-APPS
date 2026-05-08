@@ -20,6 +20,7 @@ function AddFoodForm() {
 
   const { addEntry, foodHistory } = useAppContext();
 
+  const [dictionary, setDictionary] = useState<any[]>([]);
   const [mode, setMode] = useState<InputMode>("text");
   const [meal, setMeal] = useState<MealType>(initialMeal);
   const [searchQuery, setSearchQuery] = useState("");
@@ -159,6 +160,29 @@ function AddFoodForm() {
         </div>
       )}
 
+
+
+      {!loading && mode === "text" && !results && dictionary.length > 0 && (
+        <div className="mt-4 animate-in fade-in slide-in-from-bottom-4">
+          <label className="block text-sm font-medium text-muted-foreground mb-2">Previous products for {meal}:</label>
+          <select
+            className="w-full bg-surface border border-border/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-pixel-mint/50"
+            onChange={(e) => {
+              if (!e.target.value) return;
+              const selected = dictionary[parseInt(e.target.value)];
+              if (selected) {
+                handleSelectSearchResult({ name: selected.name, macros: selected.baseMacros });
+              }
+            }}
+            defaultValue=""
+          >
+            <option value="" disabled>Select a previously consumed product...</option>
+            {dictionary.map((item, idx) => (
+              <option key={idx} value={idx}>{item.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {!loading && mode === "text" && !results && (!searchResultsList || searchResultsList.length === 0) && foodHistory && foodHistory.length > 0 && (
         <div className="mt-6 space-y-3 animate-in fade-in slide-in-from-bottom-4">
@@ -330,7 +354,7 @@ function AddFoodForm() {
 
 export default function AddFoodPage() {
   return (
-    <Suspense fallback={<div className="p-4">Cargando...</div>}>
+    <Suspense fallback={<div className="p-4">Loading...</div>}>
       <AddFoodForm />
     </Suspense>
   );

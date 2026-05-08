@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const sheets = await getSheets();
 
     // 1. Ensure required sheets exist
-    const requiredSheets = ['Principal', 'Peso Diario', 'Estadisticas'];
+    const requiredSheets = ['Main', 'Daily Weight', 'Statistics', 'Dictionary'];
     const spreadsheetInfo = await sheets.spreadsheets.get({ spreadsheetId });
     const existingTitles = spreadsheetInfo.data.sheets?.map(s => s.properties?.title) || [];
 
@@ -30,24 +30,35 @@ export async function POST(request: Request) {
         }
       });
 
-      // Optionally add headers to Principal if we just created it
-      if (missingSheets.includes('Principal')) {
+      // Optionally add headers to Main if we just created it
+      if (missingSheets.includes('Main')) {
          await sheets.spreadsheets.values.update({
             spreadsheetId,
-            range: 'Principal!A1:H1',
+            range: 'Main!A1:H1',
             valueInputOption: 'USER_ENTERED',
             requestBody: {
-              values: [['Fecha', 'Comida', 'Producto/Marca', 'Cantidad', 'Proteínas (g)', 'Carbohidratos (g)', 'Grasas (g)', 'Calorías (Kcal)']]
+              values: [['Date', 'Meal', 'Product/Brand', 'Amount', 'Protein (g)', 'Carbs (g)', 'Fats (g)', 'Calories (Kcal)']]
             }
          });
       }
-      if (missingSheets.includes('Peso Diario')) {
+
+      if (missingSheets.includes('Dictionary')) {
          await sheets.spreadsheets.values.update({
             spreadsheetId,
-            range: "'Peso Diario'!A1:B1",
+            range: "'Dictionary'!A1:B1",
             valueInputOption: 'USER_ENTERED',
             requestBody: {
-              values: [['Fecha', 'Peso (kg)']]
+              values: [['Meal', 'Product (JSON)']]
+            }
+         });
+      }
+      if (missingSheets.includes('Daily Weight')) {
+         await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: "'Daily Weight'!A1:B1",
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+              values: [['Date', 'Weight (kg)']]
             }
          });
       }
@@ -89,7 +100,7 @@ export async function POST(request: Request) {
     if (rows.length > 0) {
       await sheets.spreadsheets.values.append({
         spreadsheetId,
-        range: 'Principal!A:H',
+        range: 'Main!A:H',
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: rows,
@@ -98,10 +109,50 @@ export async function POST(request: Request) {
     }
 
 
+
+    // 3. Save unique items to Dictionary
+    if (Object.keys(meals).length > 0) {
+      try {
+        // Fetch current dictionary to avoid duplicates
+        const dictResponse = await sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range: "'Dictionary'!A:B",
+        });
+        const dictRows = dictResponse.data.values || [];
+        const existingDict = new Set(dictRows.slice(1).map(r => r[0] + '|' + r[1]));
+
+        const newDictRows: string[][] = [];
+        for (const [mealName, entries] of Object.entries(meals)) {
+          (entries as any[]).forEach((entry: any) => {
+             const cleanName = entry.name.replace(/\s*\(\d+g\)$/, '');
+             const productData = JSON.stringify({ name: cleanName, baseMacros: entry.baseMacros });
+             const key = mealName + '|' + productData;
+             if (!existingDict.has(key)) {
+               newDictRows.push([mealName, productData]);
+               existingDict.add(key); // prevent duplicates in the same payload
+             }
+          });
+        }
+
+        if (newDictRows.length > 0) {
+           await sheets.spreadsheets.values.append({
+             spreadsheetId,
+             range: "'Dictionary'!A:B",
+             valueInputOption: 'USER_ENTERED',
+             requestBody: {
+               values: newDictRows,
+             },
+           });
+        }
+      } catch (e) {
+        console.error("Error updating Dictionary", e);
+      }
+    }
+
     if (weight) {
       await sheets.spreadsheets.values.append({
         spreadsheetId,
-        range: "'Peso Diario'!A:B",
+        range: "'Daily Weight'!A:B",
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: [[date, weight]],
@@ -132,10 +183,10 @@ export async function GET(request: Request) {
 
     const sheets = await getSheets();
 
-    // Fetch the data from "Principal"
+    // Fetch the data from "Main"
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: 'Principal!A:H',
+      range: 'Main!A:H',
     });
 
     const rows = response.data.values;

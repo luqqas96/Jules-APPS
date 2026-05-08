@@ -19,7 +19,7 @@ export default function Home() {
   }, []);
 
   if (!mounted || !isLoaded) {
-    return <div className="min-h-screen bg-background flex items-center justify-center">Cargando...</div>;
+    return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
 
   const handleFinalizarDia = async () => {
