@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HomeIcon, ScaleIcon, ChartBarIcon } from "@heroicons/react/24/outline";
-import { HomeIcon as HomeIconSolid, ScaleIcon as ScaleIconSolid, ChartBarIcon as ChartBarIconSolid } from "@heroicons/react/24/solid";
+import { HomeIcon, ScaleIcon, ChartBarIcon, CalendarIcon } from "@heroicons/react/24/outline";
+import { HomeIcon as HomeIconSolid, ScaleIcon as ScaleIconSolid, ChartBarIcon as ChartBarIconSolid, CalendarIcon as CalendarIconSolid } from "@heroicons/react/24/solid";
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -13,7 +13,7 @@ export function BottomNav() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur-md border-t border-surface-secondary pb-safe z-50">
-      <div className="flex justify-around items-center h-16 max-w-md mx-auto px-6">
+      <div className="flex justify-around items-center h-16 max-w-md mx-auto px-2">
         <Link href="/" className="flex flex-col items-center justify-center w-full h-full space-y-1">
           {pathname === "/" ? (
             <>
@@ -26,6 +26,23 @@ export function BottomNav() {
             <>
               <HomeIcon className="w-6 h-6 text-muted-foreground" />
               <span className="text-[10px] text-muted-foreground">Principal</span>
+            </>
+          )}
+        </Link>
+
+
+        <Link href="/historial" className="flex flex-col items-center justify-center w-full h-full space-y-1">
+          {pathname === "/historial" ? (
+            <>
+              <div className="bg-pixel-peach-light/50 px-4 py-1 rounded-full">
+                <CalendarIconSolid className="w-6 h-6 text-pixel-peach" />
+              </div>
+              <span className="text-[10px] font-semibold text-foreground">Historial</span>
+            </>
+          ) : (
+            <>
+              <CalendarIcon className="w-6 h-6 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground">Historial</span>
             </>
           )}
         </Link>

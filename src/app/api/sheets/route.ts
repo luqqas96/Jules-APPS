@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import { getSheets } from '@/lib/sheets';
 
@@ -112,5 +113,70 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     console.error('Error saving to Google Sheets:', error);
     return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") || 'Error guardando en Sheets' }, { status: 500 });
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get('date');
+
+    if (!date) {
+      return NextResponse.json({ error: 'La fecha es requerida' }, { status: 400 });
+    }
+
+    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+    if (!spreadsheetId) {
+      return NextResponse.json({ error: 'Falta configurar ID de Spreadsheet' }, { status: 500 });
+    }
+
+    const sheets = await getSheets();
+
+    // Fetch the data from "Principal"
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: 'Principal!A:H',
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      return NextResponse.json({ meals: { Desayuno: [], Almuerzo: [], Merienda: [], Cena: [] } });
+    }
+
+    // Expected Format: Fecha | Comida | Producto/Marca | Cantidad | Proteínas (g) | Carbohidratos (g) | Grasas (g) | Calorías (Kcal)
+    // Filter by date (index 0)
+    const filteredRows = rows.filter(row => row[0] === date);
+
+    const meals: Record<string, any[]> = {
+      Desayuno: [],
+      Almuerzo: [],
+      Merienda: [],
+      Cena: []
+    };
+
+    filteredRows.forEach((row, idx) => {
+      // Skip header if it happens to match the date string (unlikely but safe)
+      if (row[1] === 'Comida') return;
+
+      const mealType = row[1];
+      if (meals[mealType]) {
+        meals[mealType].push({
+          id: `history-${idx}`,
+          name: row[2],
+          grams: row[3], // Cantidad string e.g. "150g"
+          macros: {
+            protein: parseFloat(row[4]) || 0,
+            carbs: parseFloat(row[5]) || 0,
+            fats: parseFloat(row[6]) || 0,
+            calories: parseFloat(row[7]) || 0,
+          }
+        });
+      }
+    });
+
+    return NextResponse.json({ meals });
+  } catch (error: unknown) {
+    console.error('Error fetching from Google Sheets:', error);
+    return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") || 'Error leyendo de Sheets' }, { status: 500 });
   }
 }
