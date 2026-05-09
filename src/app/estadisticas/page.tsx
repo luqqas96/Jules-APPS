@@ -6,7 +6,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useAppContext } from "@/contexts/AppContext";
 
 export default function EstadisticasPage() {
-  const [data, setData] = useState<{ weight: any[], macros: any[] }>({ weight: [], macros: [] });
+  const [data, setData] = useState<{ weight: any[], macros: any[], advancedStats?: any }>({ weight: [], macros: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const { macroGoals } = useAppContext();
@@ -29,7 +29,8 @@ export default function EstadisticasPage() {
 
           setData({
             weight: formatData(recentWeight),
-            macros: formatData(recentMacros)
+            macros: formatData(recentMacros),
+            advancedStats: json.advancedStats
           });
         } else {
           setError(json.error || "Error al cargar estadísticas");
@@ -151,6 +152,37 @@ export default function EstadisticasPage() {
                 )}
               </CardContent>
             </Card>
+
+
+            {/* Advanced Stats */}
+            {data.advancedStats && (
+              <Card className="bg-surface border-none shadow-sm mt-6">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Caloric Statistics</CardTitle>
+                  <p className="text-xs text-muted-foreground">Historical averages</p>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-pixel-mint-light/50 p-3 rounded-xl">
+                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Average</p>
+                      <p className="text-lg font-bold">{data.advancedStats.avgCals} <span className="text-xs font-normal">kcal</span></p>
+                    </div>
+                    <div className="bg-pixel-peach-light/50 p-3 rounded-xl">
+                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Median</p>
+                      <p className="text-lg font-bold">{data.advancedStats.medianCals} <span className="text-xs font-normal">kcal</span></p>
+                    </div>
+                    <div className="bg-pixel-blue-light/50 p-3 rounded-xl">
+                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Std Dev</p>
+                      <p className="text-lg font-bold">±{data.advancedStats.stdDev} <span className="text-xs font-normal">kcal</span></p>
+                    </div>
+                    <div className="bg-pixel-lavender-light/50 p-3 rounded-xl">
+                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Range</p>
+                      <p className="text-sm font-bold mt-1">{data.advancedStats.minCals} - {data.advancedStats.maxCals} <span className="text-xs font-normal">kcal</span></p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
           </div>
         )}

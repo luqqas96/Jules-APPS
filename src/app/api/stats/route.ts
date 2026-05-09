@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     try {
       const weightResponse = await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: "'Peso Diario'!A:B",
+        range: "'Daily Weight'!A:B",
       });
       const weightRows = weightResponse.data.values || [];
       // Format: Date | Weight
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     try {
       const mealsResponse = await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: 'Principal!A:H',
+        range: "'Main'!A:H",
       });
       const mealRows = mealsResponse.data.values || [];
       // Format: Fecha | Comida | Producto/Marca | Cantidad | Proteínas (g) | Carbohidratos (g) | Grasas (g) | Calorías (Kcal)

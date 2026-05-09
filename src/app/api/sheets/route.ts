@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       if (missingSheets.includes('Main')) {
          await sheets.spreadsheets.values.update({
             spreadsheetId,
-            range: 'Main!A1:H1',
+            range: "'Main'!A1:H1",
             valueInputOption: 'USER_ENTERED',
             requestBody: {
               values: [['Date', 'Meal', 'Product/Brand', 'Amount', 'Protein (g)', 'Carbs (g)', 'Fats (g)', 'Calories (Kcal)']]
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
     if (rows.length > 0) {
       await sheets.spreadsheets.values.append({
         spreadsheetId,
-        range: 'Main!A:H',
+        range: "'Main'!A:H",
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: rows,
@@ -186,7 +186,7 @@ export async function GET(request: Request) {
     // Fetch the data from "Main"
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: 'Main!A:H',
+      range: "'Main'!A:H",
     });
 
     const rows = response.data.values;
