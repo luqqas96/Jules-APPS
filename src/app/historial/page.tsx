@@ -1,6 +1,6 @@
 "use client";
 import { getMealName } from "@/lib/translations";
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { MealType } from "@/types";
 
 export default function HistorialPage() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [data, setData] = useState<Record<string, any> | null>(null);
+  const [data, setData] = useState<Record<string, {name: string, grams: number, macros: {calories: number, protein: number, carbs: number, fats: number}}[]> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -25,7 +25,7 @@ export default function HistorialPage() {
       } else {
         setError(json.error || "Error retrieving data.");
       }
-    } catch (e: unknown) {
+    } catch (_e: unknown) {
       setError("Connection error loading history.");
     } finally {
       setLoading(false);
@@ -115,7 +115,7 @@ export default function HistorialPage() {
             <div className="space-y-4">
               {mealsList.map((meal) => {
                 const entries = data[meal] || [];
-                const mealCals = entries.reduce((acc: number, curr: any) => acc + curr.macros.calories, 0);
+                const mealCals = entries.reduce((acc: number, curr: {macros: {calories: number}}) => acc + curr.macros.calories, 0);
 
                 if (entries.length === 0) return null;
 
@@ -139,7 +139,7 @@ export default function HistorialPage() {
                     </div>
                     <div className="p-3">
                       <ul className="space-y-2">
-                        {entries.map((entry: any) => (
+                        {entries.map((entry: {id?: string, name: string, grams: number, macros: {calories: number, protein: number, carbs: number, fats: number}}) => (
                           <li key={entry.id} className="bg-surface-secondary p-3 rounded-xl flex justify-between items-center">
                             <div>
                               <p className="font-medium text-sm line-clamp-1">{entry.name} <span className="text-xs font-normal text-muted-foreground ml-1">({entry.grams})</span></p>

@@ -79,12 +79,12 @@ Instrucción del usuario: ${prompt}`;
     try {
       const parsed = JSON.parse(resultText);
       return NextResponse.json(parsed);
-    } catch (e) {
+    } catch (_e) {
       console.error("Failed to parse Gemini response as JSON:", resultText);
       return NextResponse.json({ error: 'La IA devolvió un formato inválido.' }, { status: 500 });
     }
-  } catch (error: any) {
-    console.error('Error modifying meals with Gemini:', error.message || error);
-    return NextResponse.json({ error: error.message || 'Failed to process AI modification' }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Error modifying meals with Gemini:', (error as Error).message || error);
+    return NextResponse.json({ error: (error as Error).message || 'Failed to process AI modification' }, { status: 500 });
   }
 }

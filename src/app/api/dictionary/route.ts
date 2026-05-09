@@ -3,7 +3,7 @@ import { getSheets } from '@/lib/sheets';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   try {
     const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
     if (!spreadsheetId) {
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ dictionary: {} });
     }
 
-    const dictionary: Record<string, any[]> = {
+    const dictionary: Record<string, {name: string, baseMacros: Record<string, number>}[]> = {
       Breakfast: [],
       Lunch: [],
       Snack: [],

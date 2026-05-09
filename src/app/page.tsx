@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MacroProgress } from "@/components/dashboard/MacroProgress";
 import { MealSection } from "@/components/dashboard/MealSection";
@@ -12,13 +12,8 @@ import { Button } from "@/components/ui/button";
 export default function Home() {
   const { isLoaded, dailyData, clearDay } = useAppContext();
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted || !isLoaded) {
+  if (!isLoaded) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
 
@@ -55,7 +50,7 @@ export default function Home() {
       } else {
         alert(`Error saving to Sheets: ${data.error}`);
       }
-    } catch (e) {
+    } catch (_e) {
       alert("Connection error while saving the day.");
     }
   };

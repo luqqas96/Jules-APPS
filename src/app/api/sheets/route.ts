@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { NextResponse } from 'next/server';
 import { getSheets } from '@/lib/sheets';
 
@@ -69,11 +69,11 @@ export async function POST(request: Request) {
     const rows: (string | number)[][] = [];
 
     for (const [mealName, entries] of Object.entries(meals)) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       (entries as any[]).forEach((entry: any) => {
          // Try to extract grams from the name if entry.grams is missing (e.g. from AI modifying and dropping the property)
-         let matchedGrams = entry.name.match(/\((\d+(?:\.\d+)?)g\)$/);
-         let derivedGrams = matchedGrams ? matchedGrams[1] : null;
+         const matchedGrams = entry.name.match(/\((\d+(?:\.\d+)?)g\)$/);
+         const derivedGrams = matchedGrams ? matchedGrams[1] : null;
 
          let cantidad = '1 porción';
          if (entry.grams) {

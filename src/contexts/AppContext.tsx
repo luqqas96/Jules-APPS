@@ -47,53 +47,52 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [weightHistory, setWeightHistoryState] = useState<{ value: number; date: string }[]>([]);
 
   useEffect(() => {
-    // Load from local storage
-    const storedGoals = localStorage.getItem("pixel-tracker-goals");
-    if (storedGoals) {
-      try {
-                setMacroGoalsState(JSON.parse(storedGoals));
-      } catch (e) {
-        console.error("Failed to parse goals", e);
-      }
-    }
-
-    const storedData = localStorage.getItem("pixel-tracker-daily");
-    if (storedData) {
-      try {
-        const parsed = JSON.parse(storedData);
-        // If it's a new day, we should probably start fresh or keep previous?
-        // Requirements say clear screen after finishing day.
-        if (parsed.date === getTodayString()) {
-                      setDailyDataState(parsed);
-        } else {
-           // It's a new day, start fresh.
-                      setDailyDataState({ ...defaultDailyData, date: getTodayString() });
+    const t = setTimeout(() => {
+      // Load from local storage
+      const storedGoals = localStorage.getItem("pixel-tracker-goals");
+      if (storedGoals) {
+        try {
+          setMacroGoalsState(JSON.parse(storedGoals));
+        } catch (e) {
+          console.error("Failed to parse goals", e);
         }
-      } catch (e) {
-        console.error("Failed to parse daily data", e);
       }
-    }
 
-    const storedHistory = localStorage.getItem("pixel-tracker-history");
-    if (storedHistory) {
-      try {
-                setFoodHistoryState(JSON.parse(storedHistory));
-      } catch (e) {
-        console.error("Failed to parse history data", e);
+      const storedData = localStorage.getItem("pixel-tracker-daily");
+      if (storedData) {
+        try {
+          const parsed = JSON.parse(storedData);
+          if (parsed.date === getTodayString()) {
+            setDailyDataState(parsed);
+          } else {
+            setDailyDataState({ ...defaultDailyData, date: getTodayString() });
+          }
+        } catch (e) {
+          console.error("Failed to parse daily data", e);
+        }
       }
-    }
 
-
-    const storedWeightHistory = localStorage.getItem("pixel-tracker-weight-history");
-    if (storedWeightHistory) {
-      try {
-        setWeightHistoryState(JSON.parse(storedWeightHistory));
-      } catch (e) {
-        console.error("Failed to parse weight history data", e);
+      const storedHistory = localStorage.getItem("pixel-tracker-history");
+      if (storedHistory) {
+        try {
+          setFoodHistoryState(JSON.parse(storedHistory));
+        } catch (e) {
+          console.error("Failed to parse history data", e);
+        }
       }
-    }
 
-    setIsLoaded(true);
+      const storedWeightHistory = localStorage.getItem("pixel-tracker-weight-history");
+      if (storedWeightHistory) {
+        try {
+          setWeightHistoryState(JSON.parse(storedWeightHistory));
+        } catch (e) {
+          console.error("Failed to parse weight history data", e);
+        }
+      }
+
+      setIsLoaded(true);
+    }, 0);
+    return () => clearTimeout(t);
   }, []);
 
   const setMacroGoals = (goals: Macros) => {

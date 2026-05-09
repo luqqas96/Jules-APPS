@@ -1,9 +1,9 @@
 "use client";
 import { getMealName } from "@/lib/translations";
 
-import { useState, useRef, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PencilSquareIcon, PencilIcon, QrCodeIcon, MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { PencilSquareIcon, QrCodeIcon, MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useAppContext } from "@/contexts/AppContext";
 import { MealType, FoodEntry } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ function AddFoodForm() {
 
   const { addEntry, foodHistory } = useAppContext();
 
-  const [dictionary, setDictionary] = useState<any[]>([]);
+  const [dictionary, setDictionary] = useState<Partial<FoodEntry>[]>([]);
   const [mode, setMode] = useState<InputMode>("text");
   const [meal, setMeal] = useState<MealType>(initialMeal);
   const [searchQuery, setSearchQuery] = useState("");
@@ -50,7 +50,7 @@ function AddFoodForm() {
       } else {
         alert(data.error || "Search error");
       }
-    } catch (e) {
+    } catch (_e) {
       alert("Connection error");
     } finally {
       setLoading(false);
@@ -78,7 +78,7 @@ function AddFoodForm() {
       } else {
         alert(data.error || "Product not found");
       }
-    } catch (e) {
+    } catch (_e) {
       alert("Connection error");
     } finally {
       setLoading(false);
