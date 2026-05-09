@@ -71,11 +71,22 @@ export async function POST(request: Request) {
     for (const [mealName, entries] of Object.entries(meals)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (entries as any[]).forEach((entry: any) => {
-         // Extract "150g" or "100g" from name if possible, otherwise just use entry.grams
-         // In our implementation, we add grams like "My Food (150g)"
-         // Actually, entry.grams is stored in the object directly.
-         const cleanName = entry.name.replace(/\s*\(\d+g\)$/, '');
-         const cantidad = entry.grams ? `${entry.grams}g` : '1 porción';
+         // Try to extract grams from the name if entry.grams is missing (e.g. from AI modifying and dropping the property)
+         let matchedGrams = entry.name.match(/\((\d+(?:\.\d+)?)g\)$/);
+         let derivedGrams = matchedGrams ? matchedGrams[1] : null;
+
+         let cantidad = '1 porción';
+         if (entry.grams) {
+           cantidad = `${entry.grams}g`;
+         } else if (derivedGrams) {
+           cantidad = `${derivedGrams}g`;
+         } else if (!matchedGrams && !entry.grams) {
+           // If there is no "(...g)" in the name, it implicitly implies 100g or 1 serving base in our UI
+           // We will write 100g to be safe if it doesn't have a label, or "1 porción" if we can't tell.
+           cantidad = '100g';
+         }
+
+         const cleanName = entry.name.replace(/\s*\(\d+(?:\.\d+)?g\)$/, '');
 
          rows.push([
            date,

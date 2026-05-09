@@ -38,7 +38,9 @@ Instrucción del usuario: ${prompt}`;
       properties: {
         id: { type: Type.STRING },
         name: { type: Type.STRING },
+        grams: { type: Type.NUMBER },
         macros: macroSchema,
+        baseMacros: macroSchema,
         timestamp: { type: Type.NUMBER }
       },
       required: ["id", "name", "macros", "timestamp"]
