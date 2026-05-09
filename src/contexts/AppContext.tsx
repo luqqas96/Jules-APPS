@@ -1,9 +1,11 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Macros, DailyData, MealType, FoodEntry } from "@/types";
+import { Macros, DailyData, MealType, FoodEntry, UserProfile } from "@/types";
 
 interface AppContextType {
+  activeProfile: UserProfile;
+  setProfile: (profile: UserProfile) => void;
   macroGoals: Macros;
   setMacroGoals: (goals: Macros) => void;
   dailyData: DailyData;
@@ -40,25 +42,59 @@ const defaultDailyData: DailyData = {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  const [activeProfile, setActiveProfileState] = useState<UserProfile>("Lucas");
   const [macroGoals, setMacroGoalsState] = useState<Macros>(defaultGoals);
   const [dailyData, setDailyDataState] = useState<DailyData>(defaultDailyData);
   const [isLoaded, setIsLoaded] = useState(false);
   const [foodHistory, setFoodHistoryState] = useState<Omit<FoodEntry, "id" | "timestamp" | "grams" | "macros">[]>([]);
   const [weightHistory, setWeightHistoryState] = useState<{ value: number; date: string }[]>([]);
 
+  // We want to re-load data whenever the active profile changes.
   useEffect(() => {
-    const t = setTimeout(() => {
-      // Load from local storage
-      const storedGoals = localStorage.getItem("pixel-tracker-goals");
+    // Determine the profile to use for the initial load.
+    // Try to get saved profile, otherwise default to Lucas
+    let currentProfile: UserProfile = "Lucas";
+    if (!isLoaded) {
+      const savedProfile = localStorage.getItem("pixel-tracker-active-profile") as UserProfile;
+      if (savedProfile === "Lucas" || savedProfile === "Agustin") {
+        currentProfile = savedProfile;
+        setTimeout(() => setActiveProfileState(savedProfile), 0);
+      }
+    } else {
+      currentProfile = activeProfile;
+    }
+
+    const loadProfileData = (profile: UserProfile) => {
+      // Migrate old keys for Lucas if they exist but new ones don't
+      if (profile === "Lucas") {
+        if (!localStorage.getItem(`pixel-tracker-goals-${profile}`) && localStorage.getItem("pixel-tracker-goals")) {
+          localStorage.setItem(`pixel-tracker-goals-${profile}`, localStorage.getItem("pixel-tracker-goals")!);
+        }
+        if (!localStorage.getItem(`pixel-tracker-daily-${profile}`) && localStorage.getItem("pixel-tracker-daily")) {
+          localStorage.setItem(`pixel-tracker-daily-${profile}`, localStorage.getItem("pixel-tracker-daily")!);
+        }
+        if (!localStorage.getItem(`pixel-tracker-history-${profile}`) && localStorage.getItem("pixel-tracker-history")) {
+          localStorage.setItem(`pixel-tracker-history-${profile}`, localStorage.getItem("pixel-tracker-history")!);
+        }
+        if (!localStorage.getItem(`pixel-tracker-weight-history-${profile}`) && localStorage.getItem("pixel-tracker-weight-history")) {
+          localStorage.setItem(`pixel-tracker-weight-history-${profile}`, localStorage.getItem("pixel-tracker-weight-history")!);
+        }
+      }
+
+      // Load macro goals
+      const storedGoals = localStorage.getItem(`pixel-tracker-goals-${profile}`);
       if (storedGoals) {
         try {
           setMacroGoalsState(JSON.parse(storedGoals));
         } catch (e) {
           console.error("Failed to parse goals", e);
         }
+      } else {
+        setMacroGoalsState(defaultGoals);
       }
 
-      const storedData = localStorage.getItem("pixel-tracker-daily");
+      // Load daily data
+      const storedData = localStorage.getItem(`pixel-tracker-daily-${profile}`);
       if (storedData) {
         try {
           const parsed = JSON.parse(storedData);
@@ -70,39 +106,53 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
           console.error("Failed to parse daily data", e);
         }
+      } else {
+        setDailyDataState({ ...defaultDailyData, date: getTodayString() });
       }
 
-      const storedHistory = localStorage.getItem("pixel-tracker-history");
+      // Load food history
+      const storedHistory = localStorage.getItem(`pixel-tracker-history-${profile}`);
       if (storedHistory) {
         try {
           setFoodHistoryState(JSON.parse(storedHistory));
         } catch (e) {
           console.error("Failed to parse history data", e);
         }
+      } else {
+        setFoodHistoryState([]);
       }
 
-      const storedWeightHistory = localStorage.getItem("pixel-tracker-weight-history");
+      // Load weight history
+      const storedWeightHistory = localStorage.getItem(`pixel-tracker-weight-history-${profile}`);
       if (storedWeightHistory) {
         try {
           setWeightHistoryState(JSON.parse(storedWeightHistory));
         } catch (e) {
           console.error("Failed to parse weight history data", e);
         }
+      } else {
+        setWeightHistoryState([]);
       }
+    };
 
-      setIsLoaded(true);
-    }, 0);
-    return () => clearTimeout(t);
-  }, []);
+    loadProfileData(currentProfile);
+
+    setTimeout(() => setIsLoaded(true), 0);
+  }, [activeProfile, isLoaded]); // Re-run when activeProfile changes
+
+  const setProfile = (profile: UserProfile) => {
+    setActiveProfileState(profile);
+    localStorage.setItem("pixel-tracker-active-profile", profile);
+  };
 
   const setMacroGoals = (goals: Macros) => {
     setMacroGoalsState(goals);
-    localStorage.setItem("pixel-tracker-goals", JSON.stringify(goals));
+    localStorage.setItem(`pixel-tracker-goals-${activeProfile}`, JSON.stringify(goals));
   };
 
   const saveDailyData = (data: DailyData) => {
     setDailyDataState(data);
-    localStorage.setItem("pixel-tracker-daily", JSON.stringify(data));
+    localStorage.setItem(`pixel-tracker-daily-${activeProfile}`, JSON.stringify(data));
   };
 
   const addEntry = (meal: MealType, entry: Omit<FoodEntry, "id" | "timestamp">) => {
@@ -127,7 +177,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const exists = prev.some(item => item.name === baseName);
       if (exists) return prev;
       const newHistory = [{ name: baseName, baseMacros: entry.baseMacros }, ...prev].slice(0, 50); // Keep last 50
-      localStorage.setItem("pixel-tracker-history", JSON.stringify(newHistory));
+      localStorage.setItem(`pixel-tracker-history-${activeProfile}`, JSON.stringify(newHistory));
       return newHistory;
     });
 
@@ -172,11 +222,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setWeightHistoryState(prev => {
       const today = new Date().toISOString().split('T')[0];
-      // Filter out any previous entry for today
       const filtered = prev.filter(w => !w.date.startsWith(today));
-      // Add new entry to the top, keep last 7
       const newHistory = [newEntry, ...filtered].slice(0, 7);
-      localStorage.setItem("pixel-tracker-weight-history", JSON.stringify(newHistory));
+      localStorage.setItem(`pixel-tracker-weight-history-${activeProfile}`, JSON.stringify(newHistory));
       return newHistory;
     });
   };
@@ -188,7 +236,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      macroGoals, setMacroGoals, dailyData, addEntry, removeEntry, updateEntry, updateAllMeals, clearDay, isLoaded, foodHistory, setDailyWeight, weightHistory
+      activeProfile, setProfile, macroGoals, setMacroGoals, dailyData, addEntry, removeEntry, updateEntry, updateAllMeals, clearDay, isLoaded, foodHistory, setDailyWeight, weightHistory
     }}>
       {children}
     </AppContext.Provider>

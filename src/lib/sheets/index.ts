@@ -1,4 +1,3 @@
-import type { Auth } from "googleapis";
 import { google } from "googleapis";
 
 // Assuming you'll set these env variables:
@@ -26,7 +25,7 @@ export async function getSheets() {
   });
 
   const client = await auth.getClient();
-  const sheets = google.sheets({ version: "v4", auth: client as   any });
+  const sheets = google.sheets({ version: "v4", auth: client as any });
 
   return sheets;
 }

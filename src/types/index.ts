@@ -14,6 +14,8 @@ export interface FoodEntry {
   timestamp: number;
 }
 
+export type UserProfile = "Lucas" | "Agustin";
+
 export type MealType = "Desayuno" | "Almuerzo" | "Merienda" | "Cena";
 
 export interface MealData {

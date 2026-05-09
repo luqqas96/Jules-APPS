@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MacroProgress } from "@/components/dashboard/MacroProgress";
 import { MealSection } from "@/components/dashboard/MealSection";
@@ -10,10 +10,18 @@ import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
-  const { isLoaded, dailyData, clearDay } = useAppContext();
+  const { isLoaded, dailyData, clearDay, activeProfile } = useAppContext();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
 
-  if (!isLoaded) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!mounted || !isLoaded) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
 
@@ -33,6 +41,7 @@ export default function Home() {
         date: dailyData.date,
         meals: dailyData.meals,
         weight: dailyData.weight?.value,
+        profile: activeProfile,
         totals
       };
 
@@ -50,7 +59,7 @@ export default function Home() {
       } else {
         alert(`Error saving to Sheets: ${data.error}`);
       }
-    } catch (_e) {
+    } catch (e) {
       alert("Connection error while saving the day.");
     }
   };

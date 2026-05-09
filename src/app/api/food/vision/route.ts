@@ -63,12 +63,12 @@ Responde ÚNICAMENTE en formato JSON estricto con esta estructura, sin bloques d
     try {
       const parsed = JSON.parse(resultText);
       return NextResponse.json(parsed);
-    } catch (_e) {
+    } catch (e) {
       console.error("Failed to parse Gemini response as JSON:", resultText);
       return NextResponse.json({ error: 'La IA no pudo determinar los macros con seguridad.' }, { status: 500 });
     }
-  } catch (_error) {
-    console.error('Error analyzing image with Gemini:', _error);
+  } catch (error) {
+    console.error('Error analyzing image with Gemini:', error);
     return NextResponse.json({ error: 'Failed to analyze image' }, { status: 500 });
   }
 }

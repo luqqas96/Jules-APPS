@@ -1,10 +1,11 @@
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import { getSheets } from '@/lib/sheets';
 
 export async function POST(request: Request) {
   try {
-    const { date, meals, weight } = await request.json();
+    const { date, meals, weight, profile } = await request.json();
+    const activeProfile = profile || "Lucas"; // Default to Lucas for backwards compatibility
 
 
     const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
@@ -34,10 +35,10 @@ export async function POST(request: Request) {
       if (missingSheets.includes('Main')) {
          await sheets.spreadsheets.values.update({
             spreadsheetId,
-            range: "'Main'!A1:H1",
+            range: "'Main'!A1:I1",
             valueInputOption: 'USER_ENTERED',
             requestBody: {
-              values: [['Date', 'Meal', 'Product/Brand', 'Amount', 'Protein (g)', 'Carbs (g)', 'Fats (g)', 'Calories (Kcal)']]
+              values: [['Date', 'Meal', 'Product/Brand', 'Amount', 'Protein (g)', 'Carbs (g)', 'Fats (g)', 'Calories (Kcal)', 'User']]
             }
          });
       }
@@ -55,23 +56,54 @@ export async function POST(request: Request) {
       if (missingSheets.includes('Daily Weight')) {
          await sheets.spreadsheets.values.update({
             spreadsheetId,
-            range: "'Daily Weight'!A1:B1",
+            range: "'Daily Weight'!A1:C1",
             valueInputOption: 'USER_ENTERED',
             requestBody: {
-              values: [['Date', 'Weight (kg)']]
+              values: [['Date', 'Weight (kg)', 'User']]
             }
          });
       }
     }
 
+    // Check if headers need updating for existing sheets to add User column
+    if (!missingSheets.includes('Main')) {
+       const headerRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: "'Main'!A1:I1" });
+       const headers = headerRes.data.values?.[0] || [];
+       if (!headers.includes('User')) {
+         // Append 'User' to header if missing. If it's 8 cols, we write to I1.
+         const nextColIndex = headers.length; // 0-based index
+         const colLetter = String.fromCharCode(65 + nextColIndex); // e.g. 'I'
+         await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: `'Main'!${colLetter}1`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [['User']] }
+         });
+       }
+    }
+
+    if (!missingSheets.includes('Daily Weight')) {
+       const headerRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: "'Daily Weight'!A1:C1" });
+       const headers = headerRes.data.values?.[0] || [];
+       if (!headers.includes('User')) {
+         const nextColIndex = headers.length;
+         const colLetter = String.fromCharCode(65 + nextColIndex);
+         await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: `'Daily Weight'!${colLetter}1`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [['User']] }
+         });
+       }
+    }
+
     // 2. Format rows according to new layout
-    // Format: Fecha | Comida | Producto/Marca | Cantidad | Proteínas (g) | Carbohidratos (g) | Grasas (g) | Calorías (Kcal)
+    // Format: Fecha | Comida | Producto/Marca | Cantidad | Proteínas (g) | Carbohidratos (g) | Grasas (g) | Calorías (Kcal) | Usuario
     const rows: (string | number)[][] = [];
 
     for (const [mealName, entries] of Object.entries(meals)) {
 
       (entries as any[]).forEach((entry: any) => {
-         // Try to extract grams from the name if entry.grams is missing (e.g. from AI modifying and dropping the property)
          const matchedGrams = entry.name.match(/\((\d+(?:\.\d+)?)g\)$/);
          const derivedGrams = matchedGrams ? matchedGrams[1] : null;
 
@@ -81,13 +113,13 @@ export async function POST(request: Request) {
          } else if (derivedGrams) {
            cantidad = `${derivedGrams}g`;
          } else if (!matchedGrams && !entry.grams) {
-           // If there is no "(...g)" in the name, it implicitly implies 100g or 1 serving base in our UI
-           // We will write 100g to be safe if it doesn't have a label, or "1 porción" if we can't tell.
            cantidad = '100g';
          }
 
          const cleanName = entry.name.replace(/\s*\(\d+(?:\.\d+)?g\)$/, '');
 
+         // If headers have exactly 8 cols previously, we append the user at the 9th.
+         // Even if there are blank rows for previous entries, Google Sheets allows appending dynamically.
          rows.push([
            date,
            mealName,
@@ -96,22 +128,21 @@ export async function POST(request: Request) {
            entry.macros.protein,
            entry.macros.carbs,
            entry.macros.fats,
-           entry.macros.calories
+           entry.macros.calories,
+           activeProfile // <-- Added User Profile Column
          ]);
       });
     }
-
-    // If there's an AI adjustment or something, we could add it, but currently the AI directly modifies the entries.
-    // So all items are already represented in 'meals'.
 
     if (rows.length === 0 && !weight) {
        return NextResponse.json({ error: 'No hay datos para guardar' }, { status: 400 });
     }
 
     if (rows.length > 0) {
+      // Find the last used row or just append to A:I
       await sheets.spreadsheets.values.append({
         spreadsheetId,
-        range: "'Main'!A:H",
+        range: "'Main'!A:I",
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: rows,
@@ -124,7 +155,6 @@ export async function POST(request: Request) {
     // 3. Save unique items to Dictionary
     if (Object.keys(meals).length > 0) {
       try {
-        // Fetch current dictionary to avoid duplicates
         const dictResponse = await sheets.spreadsheets.values.get({
           spreadsheetId,
           range: "'Dictionary'!A:B",
@@ -140,7 +170,7 @@ export async function POST(request: Request) {
              const key = mealName + '|' + productData;
              if (!existingDict.has(key)) {
                newDictRows.push([mealName, productData]);
-               existingDict.add(key); // prevent duplicates in the same payload
+               existingDict.add(key);
              }
           });
         }
@@ -163,10 +193,10 @@ export async function POST(request: Request) {
     if (weight) {
       await sheets.spreadsheets.values.append({
         spreadsheetId,
-        range: "'Daily Weight'!A:B",
+        range: "'Daily Weight'!A:C",
         valueInputOption: 'USER_ENTERED',
         requestBody: {
-          values: [[date, weight]],
+          values: [[date, weight, activeProfile]], // <-- Added User Profile Column
         },
       });
     }
@@ -182,6 +212,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
+    const profile = searchParams.get('profile') || "Lucas"; // Default to Lucas
 
     if (!date) {
       return NextResponse.json({ error: 'La fecha es requerida' }, { status: 400 });
@@ -197,7 +228,7 @@ export async function GET(request: Request) {
     // Fetch the data from "Main"
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: "'Main'!A:H",
+      range: "'Main'!A:I", // Extended range to I to include User
     });
 
     const rows = response.data.values;
@@ -205,9 +236,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ meals: { Desayuno: [], Almuerzo: [], Merienda: [], Cena: [] } });
     }
 
-    // Expected Format: Fecha | Comida | Producto/Marca | Cantidad | Proteínas (g) | Carbohidratos (g) | Grasas (g) | Calorías (Kcal)
-    // Filter by date (index 0)
-    const filteredRows = rows.filter(row => row[0] === date);
+    // Filter by date (index 0) and profile (index 8)
+    // If index 8 is undefined/empty, we treat it as legacy which is "Lucas"
+    const filteredRows = rows.filter(row => {
+      const rowDate = row[0];
+      const rowProfile = row[8] || "Lucas";
+      return rowDate === date && rowProfile === profile;
+    });
 
     const meals: Record<string, any[]> = {
       Desayuno: [],
@@ -217,15 +252,14 @@ export async function GET(request: Request) {
     };
 
     filteredRows.forEach((row, idx) => {
-      // Skip header if it happens to match the date string (unlikely but safe)
-      if (row[1] === 'Comida') return;
+      if (row[1] === 'Meal' || row[1] === 'Comida') return;
 
       const mealType = row[1];
       if (meals[mealType]) {
         meals[mealType].push({
           id: `history-${idx}`,
           name: row[2],
-          grams: row[3], // Cantidad string e.g. "150g"
+          grams: row[3],
           macros: {
             protein: parseFloat(row[4]) || 0,
             carbs: parseFloat(row[5]) || 0,

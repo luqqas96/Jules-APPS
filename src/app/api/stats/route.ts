@@ -3,8 +3,11 @@ import { getSheets } from '@/lib/sheets';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(_request: Request) {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const profile = searchParams.get('profile') || "Lucas"; // Default to Lucas
+
     const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
     if (!spreadsheetId) {
       return NextResponse.json({ error: 'Falta configurar ID de Spreadsheet' }, { status: 500 });
@@ -13,54 +16,61 @@ export async function GET(_request: Request) {
     const sheets = await getSheets();
 
     // 1. Fetch Weight Data
-    let weightData: {date: string, weight: number}[] = [];
+    let weightData: any[] = [];
     try {
       const weightResponse = await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: "'Daily Weight'!A:B",
+        range: "'Daily Weight'!A:C", // Includes User column
       });
       const weightRows = weightResponse.data.values || [];
-      // Format: Date | Weight
+      // Format: Date | Weight | User
       weightData = weightRows
         .slice(1) // Skip header
+        .filter(row => {
+           const rowProfile = row[2] || "Lucas";
+           return rowProfile === profile;
+        })
         .map(row => ({ date: row[0], weight: parseFloat(row[1]) }))
         .filter(row => !isNaN(row.weight));
-    } catch (_e) {
-      console.error("Error fetching weight data for stats", _e);
+    } catch (e) {
+      console.error("Error fetching weight data for stats", e);
     }
 
     // 2. Fetch Meals Data
-    const macroData: Record<string, { date: string; calories: number; protein: number; carbs: number; fats: number; }> = {};
+    const macroData: Record<string, any> = {};
     try {
       const mealsResponse = await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: "'Main'!A:H",
+        range: "'Main'!A:I", // Includes User column
       });
       const mealRows = mealsResponse.data.values || [];
-      // Format: Fecha | Comida | Producto/Marca | Cantidad | Proteínas (g) | Carbohidratos (g) | Grasas (g) | Calorías (Kcal)
+      // Format: Fecha | Comida | Producto/Marca | Cantidad | Proteínas (g) | Carbohidratos (g) | Grasas (g) | Calorías (Kcal) | User
 
       mealRows.slice(1).forEach(row => {
         const date = row[0];
-        if (!date) return;
+        const rowProfile = row[8] || "Lucas";
+
+        if (!date || rowProfile !== profile) return;
+
         if (!macroData[date]) {
           macroData[date] = { date, calories: 0, protein: 0, carbs: 0, fats: 0 };
         }
-        macroData[date]!.protein += parseFloat(row[4]) || 0;
-        macroData[date]!.carbs += parseFloat(row[5]) || 0;
-        macroData[date]!.fats += parseFloat(row[6]) || 0;
-        macroData[date]!.calories += parseFloat(row[7]) || 0;
+        macroData[date].protein += parseFloat(row[4]) || 0;
+        macroData[date].carbs += parseFloat(row[5]) || 0;
+        macroData[date].fats += parseFloat(row[6]) || 0;
+        macroData[date].calories += parseFloat(row[7]) || 0;
       });
-    } catch (_e) {
-      console.error("Error fetching meals data for stats", _e);
+    } catch (e) {
+      console.error("Error fetching meals data for stats", e);
     }
 
-    const aggregatedMacros = Object.values(macroData).sort((a: { date: string }, b: { date: string }) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    const sortedWeight = weightData.sort((a: { date: string }, b: { date: string }) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const aggregatedMacros = Object.values(macroData).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const sortedWeight = weightData.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     // Calculate advanced stats
     let advancedStats = null;
     if (aggregatedMacros.length > 0) {
-      const cals = aggregatedMacros.map((m: { calories: number }) => m.calories).filter((c: number) => c > 0);
+      const cals = aggregatedMacros.map((m: any) => m.calories).filter((c: number) => c > 0);
       if (cals.length > 0) {
         const sum = cals.reduce((a: number, b: number) => a + b, 0);
         const avgCals = Math.round(sum / cals.length);
@@ -86,11 +96,10 @@ export async function GET(_request: Request) {
     }
 
     // Send back combined data
-    // We'll limit to last 30 days on the frontend or backend. Doing it frontend is more flexible.
     return NextResponse.json({ weight: sortedWeight, macros: aggregatedMacros, advancedStats });
 
-  } catch (_error: unknown) {
-    console.error('Error fetching stats from Google Sheets:', _error);
+  } catch (error: unknown) {
+    console.error('Error fetching stats from Google Sheets:', error);
     return NextResponse.json({ error: 'Error leyendo estadísticas' }, { status: 500 });
   }
 }

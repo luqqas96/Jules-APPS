@@ -1,15 +1,17 @@
 "use client";
 import { getMealName } from "@/lib/translations";
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MealType } from "@/types";
+import { useAppContext } from "@/contexts/AppContext";
 
 export default function HistorialPage() {
+  const { activeProfile } = useAppContext();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [data, setData] = useState<Record<string, {name: string, grams: number, macros: {calories: number, protein: number, carbs: number, fats: number}}[]> | null>(null);
+  const [data, setData] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -18,14 +20,14 @@ export default function HistorialPage() {
     setError("");
     setData(null);
     try {
-      const res = await fetch(`/api/sheets?date=${selectedDate}`);
+      const res = await fetch(`/api/sheets?date=${selectedDate}&profile=${activeProfile}`);
       const json = await res.json();
       if (res.ok) {
         setData(json.meals);
       } else {
         setError(json.error || "Error retrieving data.");
       }
-    } catch (_e: unknown) {
+    } catch (e: unknown) {
       setError("Connection error loading history.");
     } finally {
       setLoading(false);
@@ -35,7 +37,7 @@ export default function HistorialPage() {
   useEffect(() => {
     // eslint-disable-next-line
     if (date) fetchData(date);
-  }, [date]);
+  }, [date, activeProfile]);
 
   const mealsList: MealType[] = ["Desayuno", "Almuerzo", "Merienda", "Cena"];
 
@@ -115,7 +117,7 @@ export default function HistorialPage() {
             <div className="space-y-4">
               {mealsList.map((meal) => {
                 const entries = data[meal] || [];
-                const mealCals = entries.reduce((acc: number, curr: {macros: {calories: number}}) => acc + curr.macros.calories, 0);
+                const mealCals = entries.reduce((acc: number, curr: any) => acc + curr.macros.calories, 0);
 
                 if (entries.length === 0) return null;
 
@@ -139,7 +141,7 @@ export default function HistorialPage() {
                     </div>
                     <div className="p-3">
                       <ul className="space-y-2">
-                        {entries.map((entry: {id?: string, name: string, grams: number, macros: {calories: number, protein: number, carbs: number, fats: number}}) => (
+                        {entries.map((entry: any) => (
                           <li key={entry.id} className="bg-surface-secondary p-3 rounded-xl flex justify-between items-center">
                             <div>
                               <p className="font-medium text-sm line-clamp-1">{entry.name} <span className="text-xs font-normal text-muted-foreground ml-1">({entry.grams})</span></p>

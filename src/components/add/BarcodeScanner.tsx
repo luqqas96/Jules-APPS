@@ -5,7 +5,7 @@ import { Html5QrcodeScanner, Html5QrcodeScanType } from "html5-qrcode";
 
 interface BarcodeScannerProps {
   onResult: (result: string) => void;
-  onError?: (error: unknown) => void;
+  onError?: (error: any) => void;
 }
 
 export default function BarcodeScanner({ onResult, onError }: BarcodeScannerProps) {
@@ -39,7 +39,7 @@ export default function BarcodeScanner({ onResult, onError }: BarcodeScannerProp
         }
       };
 
-      const onScanFailure = (error: unknown) => {
+      const onScanFailure = (error: any) => {
         if (onError) onError(error);
       };
 

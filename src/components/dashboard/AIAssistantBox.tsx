@@ -33,7 +33,7 @@ export function AIAssistantBox() {
       } else {
         alert(`Error: ${data.error}`);
       }
-    } catch (_error) {
+    } catch (error) {
       alert("Connection error with the assistant.");
     } finally {
       setLoading(false);

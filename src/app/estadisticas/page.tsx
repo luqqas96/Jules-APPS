@@ -6,15 +6,15 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useAppContext } from "@/contexts/AppContext";
 
 export default function EstadisticasPage() {
-  const [data, setData] = useState<{ weight: Record<string, unknown>[], macros: Record<string, unknown>[], advancedStats?:   any }>({ weight: [], macros: [] });
+  const [data, setData] = useState<{ weight: any[], macros: any[], advancedStats?: any }>({ weight: [], macros: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const { macroGoals } = useAppContext();
+  const { macroGoals, activeProfile } = useAppContext();
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch("/api/stats");
+        const res = await fetch(`/api/stats?profile=${activeProfile}`);
         const json = await res.json();
         if (res.ok) {
           // Tomamos los ultimos 14 dias para que no se sature en movil
@@ -22,7 +22,7 @@ export default function EstadisticasPage() {
           const recentMacros = json.macros.slice(-14);
 
           // Formatear fechas
-          const formatData = (arr: {date: string, [key: string]: unknown}[]) => arr.map(item => ({
+          const formatData = (arr: any[]) => arr.map(item => ({
             ...item,
             shortDate: new Date(item.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })
           }));
@@ -82,7 +82,7 @@ export default function EstadisticasPage() {
                       <YAxis domain={['auto', 'auto']} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
                       <Tooltip
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                        formatter={(value:   any) => [`${value} kg`, 'Weight']}
+                        formatter={(value: any) => [`${value} kg`, 'Weight']}
                         labelStyle={{ color: '#6b7280', marginBottom: '4px' }}
                       />
                       <Line type="monotone" dataKey="weight" stroke="#93c5fd" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 0 }} activeDot={{ r: 6 }} />
@@ -109,7 +109,7 @@ export default function EstadisticasPage() {
                       <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
                       <Tooltip
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                        formatter={(value:   any) => [`${Math.round(value)} kcal`, 'Calories']}
+                        formatter={(value: any) => [`${Math.round(value)} kcal`, 'Calories']}
                         cursor={{ fill: '#f3f4f6' }}
                       />
                       <Bar dataKey="calories" fill="#fdba74" radius={[4, 4, 0, 0]} />
@@ -141,7 +141,7 @@ export default function EstadisticasPage() {
                       <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
                       <Tooltip
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                        formatter={(value:   any, name:   any) => {
+                        formatter={(value: any, name: any) => {
                           const labels: Record<string, string> = { protein: 'Protein', carbs: 'Carbs', fats: 'Fats' };
                           return [`${Math.round(value)}g`, labels[name] || name];
                         }}
@@ -183,7 +183,7 @@ export default function EstadisticasPage() {
                       <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
                       <Tooltip
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                        formatter={(value:   any) => [`${Math.round(value)} kcal`, 'Calories']}
+                        formatter={(value: any) => [`${Math.round(value)} kcal`, 'Calories']}
                         cursor={{ fill: '#f3f4f6' }}
                       />
                       <Bar dataKey="value" radius={[4, 4, 0, 0]}>

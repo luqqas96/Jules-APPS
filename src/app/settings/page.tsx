@@ -1,17 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { UserProfile } from "@/types";
 
 export default function SettingsPage() {
-  const { macroGoals, setMacroGoals, isLoaded } = useAppContext();
+  const { activeProfile, setProfile, macroGoals, setMacroGoals, isLoaded } = useAppContext();
   const router = useRouter();
 
   const [localGoals, setLocalGoals] = useState(macroGoals);
+
+  // Sync local goals when profile or macroGoals change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLocalGoals(macroGoals);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [macroGoals, activeProfile]);
 
   const handleSave = () => {
     setMacroGoals({
@@ -33,6 +42,30 @@ export default function SettingsPage() {
         </Button>
         <h1 className="text-2xl font-semibold">Settings</h1>
       </div>
+
+      <Card className="mb-6 border-2 border-mint-200">
+        <CardHeader>
+          <CardTitle>User Profile</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4">
+            <Button
+              variant={activeProfile === "Lucas" ? "mint" : "outline"}
+              className="flex-1"
+              onClick={() => setProfile("Lucas")}
+            >
+              Lucas
+            </Button>
+            <Button
+              variant={activeProfile === "Agustin" ? "mint" : "outline"}
+              className="flex-1"
+              onClick={() => setProfile("Agustin")}
+            >
+              Agustín
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

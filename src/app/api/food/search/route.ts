@@ -24,7 +24,7 @@ export async function GET(request: Request) {
 
     try {
         data = JSON.parse(text);
-    } catch (_e) {
+    } catch (e) {
         console.error("OpenFoodFacts returned non-JSON:", text.substring(0, 100));
         return NextResponse.json({ error: 'El servicio de búsqueda no está disponible en este momento.' }, { status: 503 });
     }
@@ -34,9 +34,9 @@ export async function GET(request: Request) {
     }
 
     const results = data.products
-      .filter((p: Record<string, unknown>) => p.product_name || p.product_name_es) // Filtrar los que no tienen nombre
-      .map((product: Record<string, unknown>) => {
-        const nutriments: Record<string, number> = (product.nutriments as Record<string, number>) || {};
+      .filter((p: Record<string, any>) => p.product_name || p.product_name_es) // Filtrar los que no tienen nombre
+      .map((product: Record<string, any>) => {
+        const nutriments = product.nutriments || {};
         return {
           name: product.product_name_es || product.product_name || query,
           brand: product.brands || '',
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
       });
 
     // Remover duplicados exactos de nombre para limpiar la lista
-    const uniqueResults = Array.from(new Map(results.map((item: Record<string, unknown>) => [item.name, item])).values());
+    const uniqueResults = Array.from(new Map(results.map((item: Record<string, any>) => [item.name, item])).values());
 
     return NextResponse.json(uniqueResults.slice(0, 5)); // Devolver los 5 mejores resultados
   } catch (error: unknown) {
