@@ -49,14 +49,14 @@ export default function Home() {
 
       const data = await res.json();
       if (res.ok) {
-        alert("¡Día guardado en Google Sheets con éxito!");
+        alert("Day saved to Google Sheets successfully!");
         clearDay();
         window.scrollTo(0, 0);
       } else {
-        alert(`Error al guardar en Sheets: ${data.error}`);
+        alert(`Error saving to Sheets: ${data.error}`);
       }
     } catch (e) {
-      alert("Error de conexión al guardar el día.");
+      alert("Connection error while saving the day.");
     }
   };
 
@@ -65,9 +65,9 @@ export default function Home() {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md px-4 py-4 flex justify-between items-center border-b border-border/50">
         <div>
-          <h1 className="text-xl font-bold text-foreground">Alimentación</h1>
+          <h1 className="text-xl font-bold text-foreground">Nutrition</h1>
           <p className="text-sm text-muted-foreground capitalize">
-            {new Date(dailyData.date).toLocaleDateString('es-ES', { weekday: 'long', month: 'short', day: 'numeric' })}
+            {new Date(dailyData.date).toLocaleDateString('en-GB', { weekday: 'long', month: 'short', day: 'numeric' })}
           </p>
         </div>
         <Button variant="ghost" size="icon" onClick={() => router.push("/settings")}>
@@ -92,7 +92,7 @@ export default function Home() {
           className="w-full shadow-md font-semibold text-lg"
           onClick={handleFinalizarDia}
         >
-          Finalizar Día
+          Finish Day
         </Button>
       </div>
     </main>

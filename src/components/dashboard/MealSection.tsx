@@ -1,5 +1,6 @@
-
 "use client";
+import { getMealName } from "@/lib/translations";
+
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -87,7 +88,7 @@ export function MealSection({ mealType }: { mealType: MealType }) {
             {mealType === "Cena" && "🌙"}
           </div>
           <div>
-            <h3 className="font-semibold text-lg leading-tight">{mealType}</h3>
+            <h3 className="font-semibold text-lg leading-tight">{getMealName(mealType)}</h3>
             <p className="text-sm text-muted-foreground">{Math.round(totalCalories)} kcal</p>
           </div>
         </div>
@@ -103,7 +104,7 @@ export function MealSection({ mealType }: { mealType: MealType }) {
       {expanded && (
         <div className="px-4 pb-4 pt-2 border-t border-surface-secondary">
           {entries.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No hay alimentos registrados.</p>
+            <p className="text-sm text-muted-foreground text-center py-4">No food logged yet.</p>
           ) : (
             <ul className="space-y-3 mb-4">
               {entries.map((entry) => (
@@ -125,7 +126,7 @@ export function MealSection({ mealType }: { mealType: MealType }) {
                       </div>
 
                       <div className="flex items-center space-x-2">
-                        <label className="text-xs font-medium w-14">Gramos:</label>
+                        <label className="text-xs font-medium w-14">Grams:</label>
                         <Input
                           type="number"
                           value={editGrams}
@@ -136,7 +137,7 @@ export function MealSection({ mealType }: { mealType: MealType }) {
 
                       {editBaseMacros && (
                         <div className="bg-surface p-3 rounded-xl border border-surface-secondary shadow-sm mt-2">
-                           <p className="text-[10px] text-muted-foreground mb-3 text-center uppercase tracking-wider font-semibold">Editar Valores Base (por 100g)</p>
+                           <p className="text-[10px] text-muted-foreground mb-3 text-center uppercase tracking-wider font-semibold">Edit Base Values (per 100g)</p>
                            <div className="grid grid-cols-4 gap-2">
                              <div className="flex flex-col items-center">
                                <label className="text-[10px] text-muted-foreground mb-1">Kcal</label>
@@ -151,7 +152,7 @@ export function MealSection({ mealType }: { mealType: MealType }) {
                                <Input type="number" step="0.1" className="h-8 text-xs px-1 text-center font-medium" value={editBaseMacros.carbs} onChange={(e) => setEditBaseMacros({...editBaseMacros, carbs: e.target.value})} />
                              </div>
                              <div className="flex flex-col items-center">
-                               <label className="text-[10px] text-muted-foreground mb-1">Gras(g)</label>
+                               <label className="text-[10px] text-muted-foreground mb-1">Fat(g)</label>
                                <Input type="number" step="0.1" className="h-8 text-xs px-1 text-center font-medium" value={editBaseMacros.fats} onChange={(e) => setEditBaseMacros({...editBaseMacros, fats: e.target.value})} />
                              </div>
                            </div>
@@ -160,7 +161,7 @@ export function MealSection({ mealType }: { mealType: MealType }) {
 
                       {editBaseMacros && (
                         <p className="text-xs text-center text-muted-foreground mt-2 font-medium bg-surface-secondary/50 py-1.5 rounded-lg">
-                          Vista previa: {Math.round((parseFloat(editBaseMacros.calories)||0) * ((parseFloat(editGrams)||0) / 100))} kcal • P: {((parseFloat(editBaseMacros.protein)||0) * ((parseFloat(editGrams)||0) / 100)).toFixed(1)}g
+                          Preview: {Math.round((parseFloat(editBaseMacros.calories)||0) * ((parseFloat(editGrams)||0) / 100))} kcal • P: {((parseFloat(editBaseMacros.protein)||0) * ((parseFloat(editGrams)||0) / 100)).toFixed(1)}g
                         </p>
                       )}
                     </div>
@@ -206,7 +207,7 @@ export function MealSection({ mealType }: { mealType: MealType }) {
             onClick={() => router.push(`/add?meal=${mealType}`)}
           >
             <PlusIcon className="w-4 h-4 mr-2" />
-            Agregar a {mealType}
+            Add to {getMealName(mealType)}
           </Button>
         </div>
       )}

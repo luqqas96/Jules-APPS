@@ -33,10 +33,10 @@ export default function EstadisticasPage() {
             advancedStats: json.advancedStats
           });
         } else {
-          setError(json.error || "Error al cargar estadísticas");
+          setError(json.error || "Error loading statistics");
         }
       } catch (e) {
-        setError("Error de red al cargar estadísticas");
+        setError("Network error loading statistics");
       } finally {
         setLoading(false);
       }
@@ -54,7 +54,7 @@ export default function EstadisticasPage() {
 
         {loading && (
           <div className="text-center text-muted-foreground animate-pulse mt-10">
-            Loading gráficos...
+            Loading charts...
           </div>
         )}
 

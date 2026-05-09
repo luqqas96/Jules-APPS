@@ -25,7 +25,7 @@ export function MacroProgress() {
       <CardContent className="p-6">
         <div className="flex justify-between items-end mb-4">
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Calorías Totales</p>
+            <p className="text-sm font-medium text-muted-foreground">Total Calories</p>
             <h2 className="text-3xl font-bold tracking-tight">
               {Math.round(totals.calories)} <span className="text-base font-normal text-muted-foreground">/ {macroGoals.calories} kcal</span>
             </h2>
@@ -37,7 +37,7 @@ export function MacroProgress() {
           {/* Protein */}
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs font-medium">
-              <span>Proteínas</span>
+              <span>Protein</span>
               <span className="text-muted-foreground">{Math.round(totals.protein)}/{macroGoals.protein}g</span>
             </div>
             <ProgressBar value={totals.protein} max={macroGoals.protein} className="h-2" colorClass="bg-pixel-peach" />
@@ -46,7 +46,7 @@ export function MacroProgress() {
           {/* Carbs */}
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs font-medium">
-              <span>Carbos</span>
+              <span>Carbs</span>
               <span className="text-muted-foreground">{Math.round(totals.carbs)}/{macroGoals.carbs}g</span>
             </div>
             <ProgressBar value={totals.carbs} max={macroGoals.carbs} className="h-2" colorClass="bg-pixel-blue" />
@@ -55,7 +55,7 @@ export function MacroProgress() {
           {/* Fats */}
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs font-medium">
-              <span>Grasas</span>
+              <span>Fats</span>
               <span className="text-muted-foreground">{Math.round(totals.fats)}/{macroGoals.fats}g</span>
             </div>
             <ProgressBar value={totals.fats} max={macroGoals.fats} className="h-2" colorClass="bg-pixel-lavender" />

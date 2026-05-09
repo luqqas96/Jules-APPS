@@ -34,7 +34,7 @@ export function AIAssistantBox() {
         alert(`Error: ${data.error}`);
       }
     } catch (error) {
-      alert("Error de conexión con el asistente.");
+      alert("Connection error with the assistant.");
     } finally {
       setLoading(false);
     }
@@ -44,15 +44,15 @@ export function AIAssistantBox() {
     <Card className="mb-6 p-4 border-none shadow-sm bg-surface-secondary">
       <div className="flex items-center space-x-2 mb-3 text-foreground font-semibold">
         <SparklesIcon className="w-5 h-5 text-pixel-mint" />
-        <span>Asistente Inteligente</span>
+        <span>Smart Assistant</span>
       </div>
       <p className="text-xs text-foreground/70 mb-3 leading-relaxed">
-        Pide ajustar porciones (ej. &quot;Comí la mitad del mantecol&quot;), sumar nuevos alimentos o corregir errores usando lenguaje natural.
+        Ask to adjust portions (e.g., &quot;I ate half the sandwich&quot;), add new foods, or correct mistakes using natural language.
       </p>
       <div className="flex space-x-2">
         <Input
           className="bg-surface border border-border shadow-sm flex-1 text-sm h-10 rounded-xl"
-          placeholder="Ej: El mantecol del almuerzo fue de 55g..."
+          placeholder="e.g. The lunch sandwich was 55g..."
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleModify()}
@@ -64,7 +64,7 @@ export function AIAssistantBox() {
           onClick={handleModify}
           disabled={loading}
         >
-          {loading ? "..." : "Enviar"}
+          {loading ? "..." : "Send"}
         </Button>
       </div>
     </Card>

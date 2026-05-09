@@ -1,5 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
+import { getMealName } from "@/lib/translations";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,10 +23,10 @@ export default function HistorialPage() {
       if (res.ok) {
         setData(json.meals);
       } else {
-        setError(json.error || "Error al obtener los datos.");
+        setError(json.error || "Error retrieving data.");
       }
     } catch (e: unknown) {
-      setError("Error de conexión al cargar el historial.");
+      setError("Connection error loading history.");
     } finally {
       setLoading(false);
     }
@@ -58,12 +59,12 @@ export default function HistorialPage() {
   return (
     <main className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md px-4 py-4 border-b border-border/50">
-        <h1 className="text-xl font-bold text-foreground">Historial Data</h1>
+        <h1 className="text-xl font-bold text-foreground">Nutrition History</h1>
       </header>
 
       <div className="p-4 max-w-md mx-auto mt-2">
         <div className="bg-surface p-4 rounded-2xl shadow-sm mb-6 flex flex-col space-y-2">
-          <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Seleccionar Fecha</label>
+          <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Select Date</label>
           <Input
             type="date"
             value={date}
@@ -74,7 +75,7 @@ export default function HistorialPage() {
 
         {loading && (
           <div className="text-center text-muted-foreground animate-pulse mt-10">
-            Buscando registros en Google Sheets...
+            Fetching records from Google Sheets...
           </div>
         )}
 
@@ -89,7 +90,7 @@ export default function HistorialPage() {
 
             <Card className="mb-6 bg-surface shadow-sm border-none">
               <CardContent className="p-5">
-                <h3 className="font-semibold text-center mb-4 text-sm text-muted-foreground uppercase tracking-wider">Resumen de Consumo</h3>
+                <h3 className="font-semibold text-center mb-4 text-sm text-muted-foreground uppercase tracking-wider">Consumption Summary</h3>
                 <div className="grid grid-cols-4 gap-2">
                   <div className="flex flex-col items-center bg-pixel-mint-light/50 p-2 rounded-xl">
                     <span className="text-[10px] text-muted-foreground">Kcal</span>
@@ -104,7 +105,7 @@ export default function HistorialPage() {
                     <span className="font-bold text-sm text-foreground">{Math.round(totalCarbs)}g</span>
                   </div>
                   <div className="flex flex-col items-center bg-pixel-lavender-light/50 p-2 rounded-xl">
-                    <span className="text-[10px] text-muted-foreground">Grasa</span>
+                    <span className="text-[10px] text-muted-foreground">Fat</span>
                     <span className="font-bold text-sm text-foreground">{Math.round(totalFats)}g</span>
                   </div>
                 </div>
@@ -119,7 +120,7 @@ export default function HistorialPage() {
                 if (entries.length === 0) return null;
 
                 return (
-                  <Card key={meal} className="overflow-hidden border-none shadow-sm bg-surface">
+                  <Card key={getMealName(meal)} className="overflow-hidden border-none shadow-sm bg-surface">
                     <div className="p-4 flex items-center justify-between border-b border-surface-secondary">
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 rounded-full bg-pixel-mint-light flex items-center justify-center text-pixel-mint text-sm">
@@ -129,7 +130,7 @@ export default function HistorialPage() {
                           {meal === "Cena" && "🌙"}
                         </div>
                         <div>
-                          <h3 className="font-semibold text-md leading-tight">{meal}</h3>
+                          <h3 className="font-semibold text-md leading-tight">{getMealName(meal)}</h3>
                         </div>
                       </div>
                       <div className="text-sm font-semibold text-muted-foreground">
@@ -156,7 +157,7 @@ export default function HistorialPage() {
 
               {totalCals === 0 && (
                 <div className="text-center py-10 text-muted-foreground">
-                  No hay alimentos registrados en Google Sheets para esta fecha.
+                  No food recorded in Google Sheets for this date.
                 </div>
               )}
             </div>
