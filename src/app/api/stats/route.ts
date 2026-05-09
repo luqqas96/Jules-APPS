@@ -57,9 +57,37 @@ export async function GET(request: Request) {
     const aggregatedMacros = Object.values(macroData).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
     const sortedWeight = weightData.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
+    // Calculate advanced stats
+    let advancedStats = null;
+    if (aggregatedMacros.length > 0) {
+      const cals = aggregatedMacros.map((m: any) => m.calories).filter((c: number) => c > 0);
+      if (cals.length > 0) {
+        const sum = cals.reduce((a: number, b: number) => a + b, 0);
+        const avgCals = Math.round(sum / cals.length);
+
+        const sortedCals = [...cals].sort((a, b) => a - b);
+        const mid = Math.floor(sortedCals.length / 2);
+        const medianCals = sortedCals.length % 2 !== 0 ? sortedCals[mid] : Math.round((sortedCals[mid - 1] + sortedCals[mid]) / 2);
+
+        const variance = cals.reduce((a: number, b: number) => a + Math.pow(b - avgCals, 2), 0) / cals.length;
+        const stdDev = Math.round(Math.sqrt(variance));
+
+        const minCals = sortedCals[0];
+        const maxCals = sortedCals[sortedCals.length - 1];
+
+        advancedStats = {
+          avgCals,
+          medianCals,
+          stdDev,
+          minCals,
+          maxCals
+        };
+      }
+    }
+
     // Send back combined data
     // We'll limit to last 30 days on the frontend or backend. Doing it frontend is more flexible.
-    return NextResponse.json({ weight: sortedWeight, macros: aggregatedMacros });
+    return NextResponse.json({ weight: sortedWeight, macros: aggregatedMacros, advancedStats });
 
   } catch (error: unknown) {
     console.error('Error fetching stats from Google Sheets:', error);
