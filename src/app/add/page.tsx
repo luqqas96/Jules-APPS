@@ -194,10 +194,10 @@ function AddFoodForm() {
                 <div className="flex-1 pr-4">
                   <h4 className="font-semibold text-sm line-clamp-2">{item.name}</h4>
                   <div className="flex space-x-3 mt-1 text-xs text-muted-foreground">
-                    <span>{item.baseMacros?.calories} kcal</span>
-                    <span>P: {item.baseMacros?.protein}g</span>
-                    <span>C: {item.baseMacros?.carbs}g</span>
-                    <span>G: {item.baseMacros?.fats}g</span>
+                    <span>{Number(item.baseMacros?.calories || 0).toFixed(2).replace(/\.?0+$/, '')} kcal</span>
+                    <span>P: {Number(item.baseMacros?.protein || 0).toFixed(2).replace(/\.?0+$/, '')}g</span>
+                    <span>C: {Number(item.baseMacros?.carbs || 0).toFixed(2).replace(/\.?0+$/, '')}g</span>
+                    <span>G: {Number(item.baseMacros?.fats || 0).toFixed(2).replace(/\.?0+$/, '')}g</span>
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground text-right w-16">
@@ -292,10 +292,10 @@ function AddFoodForm() {
                 <div className="flex-1 pr-4">
                   <h4 className="font-semibold text-sm line-clamp-2">{item.name}</h4>
                   <div className="flex space-x-3 mt-1 text-xs text-muted-foreground">
-                    <span>{item.macros?.calories} kcal</span>
-                    <span>P: {item.macros?.protein}g</span>
-                    <span>C: {item.macros?.carbs}g</span>
-                    <span>G: {item.macros?.fats}g</span>
+                    <span>{Number(item.macros?.calories || 0).toFixed(2).replace(/\.?0+$/, '')} kcal</span>
+                    <span>P: {Number(item.macros?.protein || 0).toFixed(2).replace(/\.?0+$/, '')}g</span>
+                    <span>C: {Number(item.macros?.carbs || 0).toFixed(2).replace(/\.?0+$/, '')}g</span>
+                    <span>G: {Number(item.macros?.fats || 0).toFixed(2).replace(/\.?0+$/, '')}g</span>
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground text-right w-16">
