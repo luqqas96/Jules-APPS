@@ -10,7 +10,16 @@ import { useAppContext } from "@/contexts/AppContext";
 
 export default function HistorialPage() {
   const { activeProfile } = useAppContext();
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const getTodayLocal = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const [date, setDate] = useState(getTodayLocal());
   const [data, setData] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

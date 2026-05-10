@@ -27,7 +27,13 @@ const defaultGoals: Macros = {
   fats: 65,
 };
 
-const getTodayString = () => new Date().toISOString().split('T')[0];
+const getTodayString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const defaultDailyData: DailyData = {
   date: getTodayString(),
@@ -172,6 +178,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadProfileData(currentProfile);
 
     setTimeout(() => setIsLoaded(true), 0);
+
+    // Add visibility listener for PWA to catch day rollovers when resuming app
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const todayStr = getTodayString();
+        // Compare with current localStorage to ensure we have latest data
+        const storedData = localStorage.getItem(`pixel-tracker-daily-${currentProfile}`);
+        if (storedData) {
+           try {
+              const parsed = JSON.parse(storedData);
+              if (parsed.date !== todayStr) {
+                 // Trigger full reload logic to handle auto-export and reset
+                 loadProfileData(currentProfile);
+              }
+           } catch (e) {
+              console.error(e);
+           }
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [activeProfile, isLoaded]); // Re-run when activeProfile changes
 
   const setProfile = (profile: UserProfile) => {
@@ -255,8 +287,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     saveDailyData(newData);
 
     setWeightHistoryState(prev => {
-      const today = new Date().toISOString().split('T')[0];
-      const filtered = prev.filter(w => !w.date.startsWith(today));
+      const today = getTodayString();
+      // Compare local date string with the stored ISO string by first converting ISO to local
+      const filtered = prev.filter(w => {
+        const d = new Date(w.date);
+        const wDateLocal = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        return wDateLocal !== today;
+      });
       const newHistory = [newEntry, ...filtered].slice(0, 7);
       localStorage.setItem(`pixel-tracker-weight-history-${activeProfile}`, JSON.stringify(newHistory));
       return newHistory;
