@@ -133,7 +133,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }
 
             // Start fresh for today
-            setDailyDataState({ ...defaultDailyData, date: todayStr });
+            const freshData = { ...defaultDailyData, date: todayStr };
+            setDailyDataState(freshData);
+            localStorage.setItem(`pixel-tracker-daily-${profile}`, JSON.stringify(freshData));
           }
         } catch (e) {
           console.error("Failed to parse daily data", e);
