@@ -47,8 +47,8 @@ export async function POST(request: Request) {
     const systemPrompt = `You are a helpful nutrition and diet assistant.
 The user is talking to you via a chat interface.
 You must decide between TWO actions based on the user's latest prompt:
-1. "modify_meals": The user is explicitly asking to add, remove, or modify a food entry in their current daily meals. If you choose this, you MUST provide the fully updated \`meals\` object (with all meals and entries) and a brief \`message\` confirming the action.
-2. "chat": The user is asking a question, seeking advice, or asking for food recommendations. If you choose this, you ONLY provide a \`message\` responding to them in a friendly, conversational manner. You do not return the meals object.
+1. "modify_meals": The user is explicitly asking to add a food entry to their daily meals. If you choose this, you MUST provide an array of \`new_foods\` to add, and a brief \`message\` confirming the action.
+2. "chat": The user is asking a question, seeking advice, or asking for food recommendations. If you choose this, you ONLY provide a \`message\` responding to them in a friendly, conversational manner. You do not return any food objects.
 
 CONTEXT INFORMATION:
 User Profile: ${profile || "Unknown"}
@@ -68,7 +68,8 @@ ${JSON.stringify(chatHistory.slice(-5), null, 2)}
 Instructions:
 - If making a recommendation, USE their historical foods from the dictionary above to suggest things they actually eat.
 - Keep "chat" messages concise (1-3 short paragraphs).
-- If modifying meals, calculate the macros accurately based on their request. Use the "grams" to scale "baseMacros" if provided, or adjust "macros" directly.
+- If adding foods, calculate the macros accurately based on their request. Return the scaled \`macros\` and the \`baseMacros\` (per 100g or per unit base).
+- IMPORTANT: For \`mealType\`, you MUST strictly map the user's request to one of these exact values: "Desayuno" (for breakfast), "Almuerzo" (for lunch), "Merienda" (for snack/afternoon tea), or "Cena" (for dinner).
 - ALWAYS respond in the language the user speaks to you in (likely Spanish).`;
 
     const macroSchema: Schema = {
@@ -82,17 +83,16 @@ Instructions:
       required: ["calories", "protein", "carbs", "fats"]
     };
 
-    const entrySchema: Schema = {
+    const newFoodSchema: Schema = {
       type: Type.OBJECT,
       properties: {
-        id: { type: Type.STRING },
+        mealType: { type: Type.STRING, enum: ["Desayuno", "Almuerzo", "Merienda", "Cena"] },
         name: { type: Type.STRING },
         grams: { type: Type.NUMBER },
         macros: macroSchema,
         baseMacros: macroSchema,
-        timestamp: { type: Type.NUMBER }
       },
-      required: ["id", "name", "macros", "timestamp"]
+      required: ["mealType", "name", "grams", "macros", "baseMacros"]
     };
 
     const responseSchema: Schema = {
@@ -100,15 +100,10 @@ Instructions:
         properties: {
             action: { type: Type.STRING, enum: ["modify_meals", "chat"] },
             message: { type: Type.STRING, description: "The response message to the user." },
-            meals: {
-                type: Type.OBJECT,
-                properties: {
-                    Desayuno: { type: Type.ARRAY, items: entrySchema },
-                    Almuerzo: { type: Type.ARRAY, items: entrySchema },
-                    Merienda: { type: Type.ARRAY, items: entrySchema },
-                    Cena: { type: Type.ARRAY, items: entrySchema },
-                },
-                description: "Only provide this if action is modify_meals."
+            new_foods: {
+                type: Type.ARRAY,
+                items: newFoodSchema,
+                description: "Array of food items to ADD to the user's meals. Only provide this if action is modify_meals."
             }
         },
         required: ["action", "message"]
@@ -138,28 +133,35 @@ Instructions:
     try {
       const parsed = JSON.parse(resultText);
 
-      // Server-side strict sanitization before sending to client
-      if (parsed.action === "modify_meals" && parsed.meals) {
-          const sanitizeEntries = (entries: any[]) => {
-             if (!Array.isArray(entries)) return [];
-             return entries.map(e => ({
-                id: e.id || Math.random().toString(36).substring(2, 9),
-                name: e.name || "Unknown Food",
-                grams: e.grams || 100,
-                timestamp: e.timestamp || Date.now(),
-                macros: e.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 },
-                baseMacros: e.baseMacros || e.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 }
-             }));
-          };
+      if (parsed.action === "modify_meals" && parsed.new_foods && Array.isArray(parsed.new_foods)) {
+          // Construct an updated meals object by appending new foods to currentMeals
+          const updatedMeals = JSON.parse(JSON.stringify(currentMeals)); // Deep copy
 
-          parsed.meals = {
-             Desayuno: sanitizeEntries(parsed.meals.Desayuno),
-             Almuerzo: sanitizeEntries(parsed.meals.Almuerzo),
-             Merienda: sanitizeEntries(parsed.meals.Merienda),
-             Cena: sanitizeEntries(parsed.meals.Cena)
-          };
-      } else if (parsed.action === "modify_meals" && !parsed.meals) {
-          // If action is modify_meals but no meals returned, fallback to chat
+          parsed.new_foods.forEach((food: any) => {
+             // Fallback mapping in case AI disobeys instruction
+             let targetMeal = food.mealType;
+             const mLow = targetMeal.toLowerCase();
+             if (mLow.includes("break") || mLow.includes("desay")) targetMeal = "Desayuno";
+             else if (mLow.includes("lunch") || mLow.includes("almuerz")) targetMeal = "Almuerzo";
+             else if (mLow.includes("snack") || mLow.includes("meriend")) targetMeal = "Merienda";
+             else if (mLow.includes("dinner") || mLow.includes("cena")) targetMeal = "Cena";
+             else targetMeal = "Merienda"; // Safe default
+
+             if (updatedMeals[targetMeal]) {
+                updatedMeals[targetMeal].push({
+                   id: Math.random().toString(36).substring(2, 9),
+                   name: food.name || "Unknown Food",
+                   grams: food.grams || 100,
+                   timestamp: Date.now(),
+                   macros: food.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 },
+                   baseMacros: food.baseMacros || food.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 }
+                });
+             }
+          });
+
+          parsed.meals = updatedMeals;
+          delete parsed.new_foods; // Clean up payload
+      } else if (parsed.action === "modify_meals") {
           parsed.action = "chat";
           parsed.message = parsed.message || "I couldn't modify the meals properly.";
       }
