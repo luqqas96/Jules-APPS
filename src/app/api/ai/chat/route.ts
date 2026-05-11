@@ -137,6 +137,33 @@ Instructions:
 
     try {
       const parsed = JSON.parse(resultText);
+
+      // Server-side strict sanitization before sending to client
+      if (parsed.action === "modify_meals" && parsed.meals) {
+          const sanitizeEntries = (entries: any[]) => {
+             if (!Array.isArray(entries)) return [];
+             return entries.map(e => ({
+                id: e.id || Math.random().toString(36).substring(2, 9),
+                name: e.name || "Unknown Food",
+                grams: e.grams || 100,
+                timestamp: e.timestamp || Date.now(),
+                macros: e.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 },
+                baseMacros: e.baseMacros || e.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 }
+             }));
+          };
+
+          parsed.meals = {
+             Desayuno: sanitizeEntries(parsed.meals.Desayuno),
+             Almuerzo: sanitizeEntries(parsed.meals.Almuerzo),
+             Merienda: sanitizeEntries(parsed.meals.Merienda),
+             Cena: sanitizeEntries(parsed.meals.Cena)
+          };
+      } else if (parsed.action === "modify_meals" && !parsed.meals) {
+          // If action is modify_meals but no meals returned, fallback to chat
+          parsed.action = "chat";
+          parsed.message = parsed.message || "I couldn't modify the meals properly.";
+      }
+
       return NextResponse.json(parsed);
     } catch (e) {
       console.error("Failed to parse Gemini response as JSON:", resultText);

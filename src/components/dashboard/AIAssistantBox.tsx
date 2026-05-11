@@ -61,7 +61,26 @@ export function AIAssistantBox() {
       const data = await res.json();
       if (res.ok) {
         if (data.action === "modify_meals" && data.meals) {
-          updateAllMeals(data.meals);
+          // Sanitize incoming meals from AI to prevent missing data crashes
+          const sanitizeEntries = (entries: any[]) => {
+             if (!Array.isArray(entries)) return [];
+             return entries.map(e => ({
+                id: e.id || Math.random().toString(36).substring(2, 9),
+                name: e.name || "Unknown Food",
+                grams: e.grams || 100,
+                timestamp: e.timestamp || Date.now(),
+                macros: e.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 },
+                baseMacros: e.baseMacros || e.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 }
+             }));
+          };
+          const sanitizedMeals = {
+             Desayuno: sanitizeEntries(data.meals.Desayuno),
+             Almuerzo: sanitizeEntries(data.meals.Almuerzo),
+             Merienda: sanitizeEntries(data.meals.Merienda),
+             Cena: sanitizeEntries(data.meals.Cena)
+          };
+
+          updateAllMeals(sanitizedMeals);
           setMessages(prev => [...prev, { role: "assistant", text: data.message || "Meals updated successfully!" }]);
         } else if (data.action === "chat") {
           setMessages(prev => [...prev, { role: "assistant", text: data.message }]);

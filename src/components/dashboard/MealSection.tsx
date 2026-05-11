@@ -20,8 +20,8 @@ export function MealSection({ mealType }: { mealType: MealType }) {
   const { dailyData, removeEntry, updateEntry } = useAppContext();
   const router = useRouter();
 
-  const entries = dailyData.meals[mealType];
-  const totalCalories = entries.reduce((acc, curr) => acc + curr.macros.calories, 0);
+  const entries = dailyData.meals[mealType] || [];
+  const totalCalories = entries.reduce((acc, curr) => acc + (curr.macros?.calories || 0), 0);
 
   const startEditing = (entry: FoodEntry) => {
     setEditingId(entry.id);

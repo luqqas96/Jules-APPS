@@ -29,11 +29,13 @@ export default function Home() {
     try {
       const totals = { calories: 0, protein: 0, carbs: 0, fats: 0 };
       Object.values(dailyData.meals).forEach(mealEntries => {
+        if (!Array.isArray(mealEntries)) return;
         mealEntries.forEach(entry => {
-          totals.calories += entry.macros.calories;
-          totals.protein += entry.macros.protein;
-          totals.carbs += entry.macros.carbs;
-          totals.fats += entry.macros.fats;
+          if (!entry.macros) return;
+          totals.calories += entry.macros.calories || 0;
+          totals.protein += entry.macros.protein || 0;
+          totals.carbs += entry.macros.carbs || 0;
+          totals.fats += entry.macros.fats || 0;
         });
       });
 

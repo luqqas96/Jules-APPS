@@ -107,6 +107,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const todayStr = getTodayString();
 
           if (parsed.date === todayStr) {
+            // Sanitize parsed meals to ensure they exist and have macros to prevent crashes
+            const sanitizedMeals = {
+              Desayuno: parsed.meals?.Desayuno || [],
+              Almuerzo: parsed.meals?.Almuerzo || [],
+              Merienda: parsed.meals?.Merienda || [],
+              Cena: parsed.meals?.Cena || []
+            };
+            const sanitizeEntries = (entries: any[]) => {
+               if (!Array.isArray(entries)) return [];
+               return entries.map(e => ({
+                  ...e,
+                  macros: e.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 }
+               }));
+            };
+            parsed.meals = {
+               Desayuno: sanitizeEntries(sanitizedMeals.Desayuno),
+               Almuerzo: sanitizeEntries(sanitizedMeals.Almuerzo),
+               Merienda: sanitizeEntries(sanitizedMeals.Merienda),
+               Cena: sanitizeEntries(sanitizedMeals.Cena)
+            };
             setDailyDataState(parsed);
           } else {
             // Auto-export logic if the stored date is from the past and has data
