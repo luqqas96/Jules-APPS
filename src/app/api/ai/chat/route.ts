@@ -171,8 +171,9 @@ Instructions:
       console.error("Failed to parse Gemini response as JSON:", resultText);
       return NextResponse.json({ error: 'La IA devolvió un formato inválido.' }, { status: 500 });
     }
-  } catch (error: any) {
-    console.error('Error in AI chat route:', error.message || error);
-    return NextResponse.json({ error: error.message || 'Failed to process AI chat' }, { status: 500 });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error in AI chat route:', errorMessage);
+    return NextResponse.json({ error: errorMessage || 'Failed to process AI chat' }, { status: 500 });
   }
 }
