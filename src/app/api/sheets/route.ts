@@ -31,70 +31,84 @@ export async function POST(request: Request) {
         }
       });
 
-      // Optionally add headers to Main if we just created it
+      // 1.1 Batch add headers to newly created sheets
+      const data = [];
       if (missingSheets.includes('Main')) {
-         await sheets.spreadsheets.values.update({
-            spreadsheetId,
-            range: "'Main'!A1:I1",
-            valueInputOption: 'USER_ENTERED',
-            requestBody: {
-              values: [['Date', 'Meal', 'Product/Brand', 'Amount', 'Protein (g)', 'Carbs (g)', 'Fats (g)', 'Calories (Kcal)', 'User']]
-            }
-         });
+        data.push({
+          range: "'Main'!A1:I1",
+          values: [['Date', 'Meal', 'Product/Brand', 'Amount', 'Protein (g)', 'Carbs (g)', 'Fats (g)', 'Calories (Kcal)', 'User']]
+        });
       }
-
       if (missingSheets.includes('Dictionary')) {
-         await sheets.spreadsheets.values.update({
-            spreadsheetId,
-            range: "'Dictionary'!A1:B1",
-            valueInputOption: 'USER_ENTERED',
-            requestBody: {
-              values: [['Meal', 'Product (JSON)']]
-            }
-         });
+        data.push({
+          range: "'Dictionary'!A1:B1",
+          values: [['Meal', 'Product (JSON)']]
+        });
       }
       if (missingSheets.includes('Daily Weight')) {
-         await sheets.spreadsheets.values.update({
-            spreadsheetId,
-            range: "'Daily Weight'!A1:C1",
+        data.push({
+          range: "'Daily Weight'!A1:C1",
+          values: [['Date', 'Weight (kg)', 'User']]
+        });
+      }
+
+      if (data.length > 0) {
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId,
+          requestBody: {
             valueInputOption: 'USER_ENTERED',
-            requestBody: {
-              values: [['Date', 'Weight (kg)', 'User']]
-            }
-         });
+            data
+          }
+        });
       }
     }
 
-    // Check if headers need updating for existing sheets to add User column
-    if (!missingSheets.includes('Main')) {
-       const headerRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: "'Main'!A1:I1" });
-       const headers = headerRes.data.values?.[0] || [];
-       if (!headers.includes('User')) {
-         // Append 'User' to header if missing. If it's 8 cols, we write to I1.
-         const nextColIndex = headers.length; // 0-based index
-         const colLetter = String.fromCharCode(65 + nextColIndex); // e.g. 'I'
-         await sheets.spreadsheets.values.update({
-            spreadsheetId,
-            range: `'Main'!${colLetter}1`,
-            valueInputOption: 'USER_ENTERED',
-            requestBody: { values: [['User']] }
-         });
-       }
-    }
+    // 1.2 Batch check if headers need updating for existing sheets to add User column
+    const sheetsToCheck = [];
+    if (!missingSheets.includes('Main')) sheetsToCheck.push("'Main'!A1:I1");
+    if (!missingSheets.includes('Daily Weight')) sheetsToCheck.push("'Daily Weight'!A1:C1");
 
-    if (!missingSheets.includes('Daily Weight')) {
-       const headerRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: "'Daily Weight'!A1:C1" });
-       const headers = headerRes.data.values?.[0] || [];
-       if (!headers.includes('User')) {
-         const nextColIndex = headers.length;
-         const colLetter = String.fromCharCode(65 + nextColIndex);
-         await sheets.spreadsheets.values.update({
-            spreadsheetId,
+    if (sheetsToCheck.length > 0) {
+      const headerRes = await sheets.spreadsheets.values.batchGet({
+        spreadsheetId,
+        ranges: sheetsToCheck
+      });
+
+      const updateData = [];
+
+      // Check Main headers
+      if (!missingSheets.includes('Main')) {
+        const mainHeaders = headerRes.data.valueRanges?.find(vr => vr.range?.includes('Main'))?.values?.[0] || [];
+        if (!mainHeaders.includes('User')) {
+          const colLetter = String.fromCharCode(65 + mainHeaders.length);
+          updateData.push({
+            range: `'Main'!${colLetter}1`,
+            values: [['User']]
+          });
+        }
+      }
+
+      // Check Daily Weight headers
+      if (!missingSheets.includes('Daily Weight')) {
+        const weightHeaders = headerRes.data.valueRanges?.find(vr => vr.range?.includes('Daily Weight'))?.values?.[0] || [];
+        if (!weightHeaders.includes('User')) {
+          const colLetter = String.fromCharCode(65 + weightHeaders.length);
+          updateData.push({
             range: `'Daily Weight'!${colLetter}1`,
+            values: [['User']]
+          });
+        }
+      }
+
+      if (updateData.length > 0) {
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId,
+          requestBody: {
             valueInputOption: 'USER_ENTERED',
-            requestBody: { values: [['User']] }
-         });
-       }
+            data: updateData
+          }
+        });
+      }
     }
 
     // 2. Format rows according to new layout
@@ -138,29 +152,52 @@ export async function POST(request: Request) {
        return NextResponse.json({ error: 'No hay datos para guardar' }, { status: 400 });
     }
 
+    // 3. Concurrent operations for Main, Dictionary fetch, and Daily Weight
+    const operations: Promise<any>[] = [];
+
+    // Main sheet append
     if (rows.length > 0) {
-      // Find the last used row or just append to A:I
-      await sheets.spreadsheets.values.append({
+      operations.push(sheets.spreadsheets.values.append({
         spreadsheetId,
         range: "'Main'!A:I",
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: rows,
         },
-      });
+      }));
     }
 
-
-
-    // 3. Save unique items to Dictionary
+    // Dictionary fetch (to be followed by conditional append)
+    let dictFetchPromise: Promise<any> | null = null;
     if (Object.keys(meals).length > 0) {
+      dictFetchPromise = sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: "'Dictionary'!A:B",
+      });
+      operations.push(dictFetchPromise);
+    }
+
+    // Daily Weight append
+    if (weight) {
+      operations.push(sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range: "'Daily Weight'!A:C",
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[date, weight, activeProfile]],
+        },
+      }));
+    }
+
+    // Wait for parallel operations
+    const results = await Promise.all(operations);
+
+    // 4. Follow-up: Save unique items to Dictionary if fetch was part of operations
+    if (dictFetchPromise) {
       try {
-        const dictResponse = await sheets.spreadsheets.values.get({
-          spreadsheetId,
-          range: "'Dictionary'!A:B",
-        });
+        const dictResponse = await dictFetchPromise;
         const dictRows = dictResponse.data.values || [];
-        const existingDict = new Set(dictRows.slice(1).map(r => r[0] + '|' + r[1]));
+        const existingDict = new Set(dictRows.slice(1).map((r: any) => r[0] + '|' + r[1]));
 
         const newDictRows: string[][] = [];
         for (const [mealName, entries] of Object.entries(meals)) {
@@ -188,17 +225,6 @@ export async function POST(request: Request) {
       } catch (e) {
         console.error("Error updating Dictionary", e);
       }
-    }
-
-    if (weight) {
-      await sheets.spreadsheets.values.append({
-        spreadsheetId,
-        range: "'Daily Weight'!A:C",
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [[date, weight, activeProfile]], // <-- Added User Profile Column
-        },
-      });
     }
 
     return NextResponse.json({ success: true });
