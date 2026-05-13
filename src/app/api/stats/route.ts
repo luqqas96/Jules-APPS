@@ -71,7 +71,12 @@ export async function GET(request: Request) {
     let advancedStats = null;
     if (aggregatedMacros.length > 0) {
       const cals = aggregatedMacros.map((m: any) => m.calories).filter((c: number) => c > 0);
+      const prots = aggregatedMacros.map((m: any) => m.protein).filter((c: number) => c > 0);
+      const carbo = aggregatedMacros.map((m: any) => m.carbs).filter((c: number) => c > 0);
+      const fat = aggregatedMacros.map((m: any) => m.fats).filter((c: number) => c > 0);
+
       if (cals.length > 0) {
+        // Calories Stats
         const sum = cals.reduce((a: number, b: number) => a + b, 0);
         const avgCals = Math.round(sum / cals.length);
 
@@ -85,12 +90,30 @@ export async function GET(request: Request) {
         const minCals = sortedCals[0];
         const maxCals = sortedCals[sortedCals.length - 1];
 
+        // Macro Stats Helper
+        const calcMacroStats = (arr: number[]) => {
+            if (arr.length === 0) return { avg: 0, median: 0, min: 0, max: 0 };
+            const mSum = arr.reduce((a, b) => a + b, 0);
+            const avg = Math.round(mSum / arr.length);
+            const sorted = [...arr].sort((a, b) => a - b);
+            const mMid = Math.floor(sorted.length / 2);
+            const median = sorted.length % 2 !== 0 ? sorted[mMid] : Math.round((sorted[mMid - 1] + sorted[mMid]) / 2);
+            return { avg, median, min: Math.round(sorted[0]), max: Math.round(sorted[sorted.length - 1]) };
+        };
+
+        const proteinStats = calcMacroStats(prots);
+        const carbsStats = calcMacroStats(carbo);
+        const fatsStats = calcMacroStats(fat);
+
         advancedStats = {
           avgCals,
           medianCals,
           stdDev,
           minCals,
-          maxCals
+          maxCals,
+          protein: proteinStats,
+          carbs: carbsStats,
+          fats: fatsStats
         };
       }
     }

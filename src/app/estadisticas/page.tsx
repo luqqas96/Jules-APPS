@@ -162,64 +162,98 @@ export default function EstadisticasPage() {
 
             {/* Advanced Stats */}
             {data.advancedStats && (
-              <Card className="bg-surface border-none shadow-sm mt-6">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Caloric Statistics Chart</CardTitle>
-                  <p className="text-xs text-muted-foreground">Historical spread (Min, Avg, Max)</p>
-                </CardHeader>
-                <CardContent className="h-64 pt-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={[
-                        { name: 'Min', value: data.advancedStats.minCals, fill: '#60a5fa' },
-                        { name: 'Avg', value: data.advancedStats.avgCals, fill: '#8b5cf6' },
-                        { name: 'Median', value: data.advancedStats.medianCals, fill: '#10b981' },
-                        { name: 'Max', value: data.advancedStats.maxCals, fill: '#f87171' }
-                      ]}
-                      margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} dy={10} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
-                      <Tooltip
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                        formatter={(value: any) => [`${Math.round(value)} kcal`, 'Calories']}
-                        cursor={{ fill: '#f3f4f6' }}
-                      />
-                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                        {
-                          [
-                            { name: 'Min', value: data.advancedStats.minCals, fill: '#60a5fa' },
-                            { name: 'Avg', value: data.advancedStats.avgCals, fill: '#8b5cf6' },
-                            { name: 'Median', value: data.advancedStats.medianCals, fill: '#10b981' },
-                            { name: 'Max', value: data.advancedStats.maxCals, fill: '#f87171' }
-                          ].map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill} />
-                          ))
-                        }
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            )}
+              <>
+                <Card className="bg-surface border-none shadow-sm mt-6">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">Caloric Statistics Chart</CardTitle>
+                    <p className="text-xs text-muted-foreground">Historical spread (Min, Avg, Max)</p>
+                  </CardHeader>
+                  <CardContent className="h-64 pt-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={[
+                          { name: 'Min', value: data.advancedStats.minCals, fill: '#60a5fa' },
+                          { name: 'Avg', value: data.advancedStats.avgCals, fill: '#8b5cf6' },
+                          { name: 'Median', value: data.advancedStats.medianCals, fill: '#10b981' },
+                          { name: 'Max', value: data.advancedStats.maxCals, fill: '#f87171' }
+                        ]}
+                        margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} dy={10} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
+                        <Tooltip
+                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          formatter={(value: any) => [`${Math.round(value)} kcal`, 'Calories']}
+                          cursor={{ fill: '#f3f4f6' }}
+                        />
+                        <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                          {
+                            [
+                              { name: 'Min', value: data.advancedStats.minCals, fill: '#60a5fa' },
+                              { name: 'Avg', value: data.advancedStats.avgCals, fill: '#8b5cf6' },
+                              { name: 'Median', value: data.advancedStats.medianCals, fill: '#10b981' },
+                              { name: 'Max', value: data.advancedStats.maxCals, fill: '#f87171' }
+                            ].map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))
+                          }
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
 
-            {/* Stats Summary Text */}
-            {data.advancedStats && (
-              <Card className="bg-surface border-none shadow-sm">
-                <CardContent className="pt-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-pixel-mint-light/50 p-3 rounded-xl">
-                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Std Deviation</p>
-                      <p className="text-lg font-bold">±{data.advancedStats.stdDev} <span className="text-xs font-normal">kcal</span></p>
+                {/* Macro Statistics Chart */}
+                <Card className="bg-surface border-none shadow-sm mt-6">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">Macro Statistics Chart</CardTitle>
+                    <p className="text-xs text-muted-foreground">Historical Avg and Median (g)</p>
+                  </CardHeader>
+                  <CardContent className="h-64 pt-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={[
+                          { name: 'Protein', Min: data.advancedStats.protein.min, Avg: data.advancedStats.protein.avg, Median: data.advancedStats.protein.median, Max: data.advancedStats.protein.max },
+                          { name: 'Carbs', Min: data.advancedStats.carbs.min, Avg: data.advancedStats.carbs.avg, Median: data.advancedStats.carbs.median, Max: data.advancedStats.carbs.max },
+                          { name: 'Fats', Min: data.advancedStats.fats.min, Avg: data.advancedStats.fats.avg, Median: data.advancedStats.fats.median, Max: data.advancedStats.fats.max }
+                        ]}
+                        margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} dy={10} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
+                        <Tooltip
+                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          formatter={(value: any, name: any) => [`${Math.round(value)}g`, name]}
+                          cursor={{ fill: '#f3f4f6' }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                        <Bar dataKey="Min" fill="#60a5fa" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="Avg" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="Median" fill="#10b981" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="Max" fill="#f87171" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                {/* Stats Summary Text */}
+                <Card className="bg-surface border-none shadow-sm mt-6">
+                  <CardContent className="pt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-pixel-mint-light/50 p-3 rounded-xl">
+                        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Std Deviation</p>
+                        <p className="text-lg font-bold">±{data.advancedStats.stdDev} <span className="text-xs font-normal">kcal</span></p>
+                      </div>
+                      <div className="bg-pixel-lavender-light/50 p-3 rounded-xl">
+                        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Caloric Range</p>
+                        <p className="text-sm font-bold mt-1">{data.advancedStats.minCals} - {data.advancedStats.maxCals} <span className="text-xs font-normal">kcal</span></p>
+                      </div>
                     </div>
-                    <div className="bg-pixel-lavender-light/50 p-3 rounded-xl">
-                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Caloric Range</p>
-                      <p className="text-sm font-bold mt-1">{data.advancedStats.minCals} - {data.advancedStats.maxCals} <span className="text-xs font-normal">kcal</span></p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </>
             )}
 
           </div>
