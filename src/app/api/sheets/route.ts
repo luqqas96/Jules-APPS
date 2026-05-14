@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     const sheets = await getSheets();
 
     // 1. Ensure required sheets exist
-    const requiredSheets = ['Main', 'Daily Weight', 'Statistics', 'Dictionary'];
+    const requiredSheets = ['Main', 'Daily Weight', 'Statistics', 'Dictionary', 'Fitness Progress'];
     const spreadsheetInfo = await sheets.spreadsheets.get({ spreadsheetId });
     const existingTitles = spreadsheetInfo.data.sheets?.map(s => s.properties?.title) || [];
 
@@ -60,6 +60,16 @@ export async function POST(request: Request) {
             valueInputOption: 'USER_ENTERED',
             requestBody: {
               values: [['Date', 'Weight (kg)', 'User']]
+            }
+         });
+      }
+      if (missingSheets.includes('Fitness Progress')) {
+         await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: "'Fitness Progress'!A1:F1",
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+              values: [['Date', 'Category', 'Exercise', 'Reps', 'Weight', 'User']]
             }
          });
       }
