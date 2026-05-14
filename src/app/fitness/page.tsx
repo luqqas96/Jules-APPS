@@ -39,13 +39,14 @@ export default function FitnessPage() {
 
   // States para el formulario
   const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
+  const [sets, setSets] = useState("");
   const [reps, setReps] = useState("");
   const [weight, setWeight] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedExercise || !reps || !weight) return;
+    if (!selectedExercise || !sets || !reps || !weight) return;
 
     setLoading(true);
     try {
@@ -56,6 +57,7 @@ export default function FitnessPage() {
           date: getTodayString(),
           category: activeTab,
           exercise: selectedExercise,
+          sets: parseInt(sets),
           reps: parseInt(reps),
           weight: parseFloat(weight),
           profile: activeProfile
@@ -64,6 +66,7 @@ export default function FitnessPage() {
 
       if (res.ok) {
         alert("¡Ejercicio guardado exitosamente!");
+        setSets("");
         setReps("");
         setWeight("");
         setSelectedExercise(null);
@@ -139,6 +142,17 @@ export default function FitnessPage() {
               {selectedExercise === exercise.name && (
                 <div className="mt-4 pt-4 border-t border-border/50 animate-in slide-in-from-top-2 fade-in">
                   <form onSubmit={handleSave} className="flex items-end space-x-3">
+                    <div className="flex-1">
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Sets</label>
+                      <Input
+                        type="number"
+                        required
+                        value={sets}
+                        onChange={(e) => setSets(e.target.value)}
+                        placeholder="Ej: 3"
+                        className="bg-background text-base h-11"
+                      />
+                    </div>
                     <div className="flex-1">
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">Reps</label>
                       <Input

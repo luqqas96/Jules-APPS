@@ -3,7 +3,7 @@ import { getSheets } from '@/lib/sheets';
 
 export async function POST(request: Request) {
   try {
-    const { date, category, exercise, reps, weight, profile } = await request.json();
+    const { date, category, exercise, sets, reps, weight, profile } = await request.json();
     const activeProfile = profile || "Lucas";
 
     const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Falta configurar ID de Spreadsheet' }, { status: 500 });
     }
 
-    if (!date || !category || !exercise || reps === undefined || weight === undefined) {
+    if (!date || !category || !exercise || sets === undefined || reps === undefined || weight === undefined) {
        return NextResponse.json({ error: 'Faltan datos requeridos' }, { status: 400 });
     }
 
@@ -31,10 +31,10 @@ export async function POST(request: Request) {
 
       await sheets.spreadsheets.values.update({
         spreadsheetId,
-        range: "'Fitness Progress'!A1:F1",
+        range: "'Fitness Progress'!A1:G1",
         valueInputOption: 'USER_ENTERED',
         requestBody: {
-          values: [['Date', 'Category', 'Exercise', 'Reps', 'Weight', 'User']]
+          values: [['Date', 'Category', 'Exercise', 'Sets', 'Reps', 'Weight', 'User']]
         }
       });
     }
@@ -42,10 +42,10 @@ export async function POST(request: Request) {
     // Append to Fitness Progress
     await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: "'Fitness Progress'!A:F",
+      range: "'Fitness Progress'!A:G",
       valueInputOption: 'USER_ENTERED',
       requestBody: {
-        values: [[date, category, exercise, reps, weight, activeProfile]],
+        values: [[date, category, exercise, sets, reps, weight, activeProfile]],
       },
     });
 
