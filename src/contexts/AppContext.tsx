@@ -62,7 +62,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     let currentProfile: UserProfile = "Lucas";
     if (!isLoaded) {
       const savedProfile = localStorage.getItem("pixel-tracker-active-profile") as UserProfile;
-      if (savedProfile === "Lucas" || savedProfile === "Agustin") {
+      if (savedProfile === "Lucas" || savedProfile === "Agustin" || savedProfile === "Mariano") {
         currentProfile = savedProfile;
         setTimeout(() => setActiveProfileState(savedProfile), 0);
       }

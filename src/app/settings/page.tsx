@@ -63,6 +63,13 @@ export default function SettingsPage() {
             >
               Agustín
             </Button>
+            <Button
+              variant={activeProfile === "Mariano" ? "mint" : "outline"}
+              className="flex-1"
+              onClick={() => setProfile("Mariano")}
+            >
+              Mariano
+            </Button>
           </div>
         </CardContent>
       </Card>
