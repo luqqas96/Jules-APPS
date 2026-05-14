@@ -117,7 +117,12 @@ export default function FitnessPage() {
           {ROUTINES[activeTab].map((exercise) => (
             <div
               key={exercise.name}
-              onClick={() => setSelectedExercise(selectedExercise === exercise.name ? null : exercise.name)}
+              onClick={(e) => {
+                // Only toggle if we are clicking the card itself, not the form inputs inside it
+                if (!(e.target as HTMLElement).closest("form")) {
+                  setSelectedExercise(selectedExercise === exercise.name ? null : exercise.name);
+                }
+              }}
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${selectedExercise === exercise.name ? 'border-pixel-blue bg-pixel-blue-light/20 shadow-sm' : 'border-transparent bg-surface hover:bg-surface-secondary'}`}
             >
               <div className="flex items-center space-x-4">
