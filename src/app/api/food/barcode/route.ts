@@ -11,7 +11,16 @@ export async function GET(request: Request) {
   try {
     const url = `https://world.openfoodfacts.org/api/v0/product/${code}.json`;
     const res = await fetch(url);
-    const data = await res.json();
+
+    // Check if the response is actually JSON before parsing to handle 502 HTML pages gracefully
+    const text = await res.text();
+    let data;
+    try {
+       data = JSON.parse(text);
+    } catch (e) {
+       console.error("OpenFoodFacts returned non-JSON response:", text.substring(0, 200));
+       return NextResponse.json({ error: 'OpenFoodFacts API temporalmente no disponible (caída)' }, { status: 502 });
+    }
 
     if (data.status !== 1 || !data.product) {
       return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });

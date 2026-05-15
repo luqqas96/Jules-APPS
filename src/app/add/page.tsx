@@ -76,7 +76,12 @@ function AddFoodForm() {
         setSearchResultsList(null);
         setGrams("100");
       } else {
-        alert(data.error || "Product not found");
+        // Show clear alert if the API is down to avoid user confusion
+        if (data.error && data.error.includes("caída")) {
+          alert(`Error: ${data.error}\nPor favor ingresa el alimento manualmente por ahora.`);
+        } else {
+          alert(data.error || "Product not found");
+        }
       }
     } catch (e) {
       alert("Connection error");
