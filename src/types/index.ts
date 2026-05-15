@@ -3,6 +3,10 @@ export interface Macros {
   protein: number;
   carbs: number;
   fats: number;
+  cholesterol?: number;
+  sodium?: number;
+  sugar?: number;
+  calcium?: number;
 }
 
 export interface FoodEntry {

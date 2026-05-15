@@ -107,8 +107,21 @@ export async function POST(request: Request) {
        }
     }
 
+    // Get existing data to prevent duplicates
+    let existingData: any[] = [];
+    try {
+      // Extend range to M to accommodate the new micronutrients
+      const existingRes = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: "'Main'!A:M"
+      });
+      existingData = existingRes.data.values || [];
+    } catch (e) {
+      console.log("Could not fetch existing data for deduplication", e);
+    }
+
     // 2. Format rows according to new layout
-    // Format: Fecha | Comida | Producto/Marca | Cantidad | Proteínas (g) | Carbohidratos (g) | Grasas (g) | Calorías (Kcal) | Usuario
+    // Format: Fecha | Comida | Producto/Marca | Cantidad | Proteínas (g) | Carbohidratos (g) | Grasas (g) | Calorías (Kcal) | Usuario | Colesterol (mg) | Sodio (mg) | Azúcares (g) | Calcio (mg)
     const rows: (string | number)[][] = [];
 
     for (const [mealName, entries] of Object.entries(meals)) {
@@ -128,9 +141,7 @@ export async function POST(request: Request) {
 
          const cleanName = entry.name.replace(/\s*\(\d+(?:\.\d+)?g\)$/, '');
 
-         // If headers have exactly 8 cols previously, we append the user at the 9th.
-         // Even if there are blank rows for previous entries, Google Sheets allows appending dynamically.
-         rows.push([
+         const rowData = [
            date,
            mealName,
            cleanName,
@@ -139,20 +150,40 @@ export async function POST(request: Request) {
            entry.macros.carbs,
            entry.macros.fats,
            entry.macros.calories,
-           activeProfile // <-- Added User Profile Column
-         ]);
+           activeProfile,
+           entry.macros.cholesterol ?? 0,
+           entry.macros.sodium ?? 0,
+           entry.macros.sugar ?? 0,
+           entry.macros.calcium ?? 0
+         ];
+
+         // Basic deduplication: check if an identical row already exists in the sheet
+         // (comparing Date, Meal, Product, Amount, and User)
+         const isDuplicate = existingData.some(existingRow => {
+           return existingRow[0] === date &&
+                  existingRow[1] === mealName &&
+                  existingRow[2] === cleanName &&
+                  existingRow[3] === cantidad &&
+                  (existingRow[8] || "Lucas") === activeProfile; // Fallback to Lucas if missing User column
+         });
+
+         if (!isDuplicate) {
+           rows.push(rowData);
+         } else {
+           console.log(`Skipping duplicate entry: ${date} - ${mealName} - ${cleanName}`);
+         }
       });
     }
 
     if (rows.length === 0 && !weight) {
-       return NextResponse.json({ error: 'No hay datos para guardar' }, { status: 400 });
+       return NextResponse.json({ success: true, message: 'No hay nuevos datos para guardar (o eran duplicados)' });
     }
 
     if (rows.length > 0) {
-      // Find the last used row or just append to A:I
+      // Find the last used row or just append to A:M (including extended macros)
       await sheets.spreadsheets.values.append({
         spreadsheetId,
-        range: "'Main'!A:I",
+        range: "'Main'!A:M",
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: rows,
@@ -238,7 +269,7 @@ export async function GET(request: Request) {
     // Fetch the data from "Main"
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: "'Main'!A:I", // Extended range to I to include User
+      range: "'Main'!A:M", // Extended range to M to include User & extended macros
     });
 
     const rows = response.data.values;
@@ -275,6 +306,10 @@ export async function GET(request: Request) {
             carbs: parseFloat(row[5]) || 0,
             fats: parseFloat(row[6]) || 0,
             calories: parseFloat(row[7]) || 0,
+            cholesterol: parseFloat(row[9]) || 0,
+            sodium: parseFloat(row[10]) || 0,
+            sugar: parseFloat(row[11]) || 0,
+            calcium: parseFloat(row[12]) || 0,
           }
         });
       }
