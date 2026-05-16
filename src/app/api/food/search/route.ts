@@ -45,6 +45,10 @@ export async function GET(request: Request) {
             protein: Math.round(nutriments.proteins_100g || nutriments.proteins_value || 0),
             carbs: Math.round(nutriments.carbohydrates_100g || nutriments.carbohydrates_value || 0),
             fats: Math.round(nutriments.fat_100g || nutriments.fat_value || 0),
+            cholesterol: Math.round(nutriments.cholesterol_100g || nutriments.cholesterol_value || 0),
+            sodium: Math.round(nutriments.sodium_100g || nutriments.sodium_value || 0),
+            sugar: Math.round(nutriments.sugars_100g || nutriments.sugars_value || 0),
+            calcium: Math.round(nutriments.calcium_100g || nutriments.calcium_value || 0),
           }
         };
       });

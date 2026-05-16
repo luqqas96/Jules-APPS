@@ -36,6 +36,10 @@ export async function GET(request: Request) {
         protein: nutriments.proteins_100g || nutriments.proteins_value || 0,
         carbs: nutriments.carbohydrates_100g || nutriments.carbohydrates_value || 0,
         fats: nutriments.fat_100g || nutriments.fat_value || 0,
+        cholesterol: nutriments.cholesterol_100g || nutriments.cholesterol_value || 0,
+        sodium: nutriments.sodium_100g || nutriments.sodium_value || 0,
+        sugar: nutriments.sugars_100g || nutriments.sugars_value || 0,
+        calcium: nutriments.calcium_100g || nutriments.calcium_value || 0,
       }
     });
   } catch (error) {

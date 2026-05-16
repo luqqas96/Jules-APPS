@@ -79,6 +79,10 @@ Instructions:
         protein: { type: Type.NUMBER },
         carbs: { type: Type.NUMBER },
         fats: { type: Type.NUMBER },
+        cholesterol: { type: Type.NUMBER },
+        sodium: { type: Type.NUMBER },
+        sugar: { type: Type.NUMBER },
+        calcium: { type: Type.NUMBER },
       },
       required: ["calories", "protein", "carbs", "fats"]
     };
@@ -153,8 +157,8 @@ Instructions:
                    name: food.name || "Unknown Food",
                    grams: food.grams || 100,
                    timestamp: Date.now(),
-                   macros: food.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 },
-                   baseMacros: food.baseMacros || food.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 }
+                   macros: food.macros || { calories: 0, protein: 0, carbs: 0, fats: 0, cholesterol: 0, sodium: 0, sugar: 0, calcium: 0 },
+                   baseMacros: food.baseMacros || food.macros || { calories: 0, protein: 0, carbs: 0, fats: 0, cholesterol: 0, sodium: 0, sugar: 0, calcium: 0 }
                 });
              }
           });
