@@ -12,7 +12,8 @@ const ROUTINES = {
   Push: [
     { name: "Press Inclinado", icon: "🏋️‍♂️" },
     { name: "Press Plano", icon: "💪" },
-    { name: "Press Militar", icon: "🔥" }
+    { name: "Press Militar", icon: "🔥" },
+    { name: "Hombros en polea", icon: "⚙️" }
   ],
   Pull: [
     { name: "Jalón al pecho", icon: "🦍" },
@@ -26,7 +27,8 @@ const ROUTINES = {
   ],
   Brazos: [
     { name: "Curl de bíceps", icon: "🦾" },
-    { name: "Press francés", icon: "🔱" }
+    { name: "Press francés", icon: "🔱" },
+    { name: "Tríceps en polea", icon: "⛓️" }
   ]
 };
 
