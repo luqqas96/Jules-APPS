@@ -100,6 +100,10 @@ function AddFoodForm() {
         protein: Number((results.macros.protein * multiplier).toFixed(1)),
         carbs: Number((results.macros.carbs * multiplier).toFixed(1)),
         fats: Number((results.macros.fats * multiplier).toFixed(1)),
+        cholesterol: Number(((results.macros.cholesterol || 0) * multiplier).toFixed(1)),
+        sodium: Number(((results.macros.sodium || 0) * multiplier).toFixed(1)),
+        sugar: Number(((results.macros.sugar || 0) * multiplier).toFixed(1)),
+        calcium: Number(((results.macros.calcium || 0) * multiplier).toFixed(1)),
       };
 
       const displayName = parsedGrams !== 100 ? `${results.name} (${parsedGrams}g)` : results.name;
