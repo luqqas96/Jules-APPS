@@ -198,7 +198,7 @@ function AddFoodForm() {
         <div className="mt-6 space-y-3 animate-in fade-in slide-in-from-bottom-4">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Recent:</h3>
           {foodHistory.map((item, idx) => (
-            <Card key={idx} className="cursor-pointer hover:bg-surface-secondary transition-colors" onClick={() => handleSelectSearchResult({ name: item.name, macros: item.baseMacros })}>
+            <Card key={idx} className="cursor-pointer hover:bg-surface-secondary transition-colors" onClick={() => handleSelectSearchResult({ name: item.name, macros: { ...item.baseMacros, cholesterol: item.baseMacros.cholesterol || 0, sodium: item.baseMacros.sodium || 0, sugar: item.baseMacros.sugar || 0, calcium: item.baseMacros.calcium || 0 } })}>
               <CardContent className="p-4 flex justify-between items-center">
                 <div className="flex-1 pr-4">
                   <h4 className="font-semibold text-sm line-clamp-2">{item.name}</h4>

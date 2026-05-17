@@ -51,11 +51,7 @@ export function MealSection({ mealType }: { mealType: MealType }) {
       calories: parseFloat(editBaseMacros.calories) || 0,
       protein: parseFloat(editBaseMacros.protein) || 0,
       carbs: parseFloat(editBaseMacros.carbs) || 0,
-      fats: parseFloat(editBaseMacros.fats) || 0,
-      cholesterol: entry.baseMacros?.cholesterol || 0,
-      sodium: entry.baseMacros?.sodium || 0,
-      sugar: entry.baseMacros?.sugar || 0,
-      calcium: entry.baseMacros?.calcium || 0
+      fats: parseFloat(editBaseMacros.fats) || 0
     };
 
     const scaledMacros = {
@@ -63,10 +59,6 @@ export function MealSection({ mealType }: { mealType: MealType }) {
       protein: Number((parsedBase.protein * multiplier).toFixed(1)),
       carbs: Number((parsedBase.carbs * multiplier).toFixed(1)),
       fats: Number((parsedBase.fats * multiplier).toFixed(1)),
-      cholesterol: Number(((parsedBase.cholesterol || 0) * multiplier).toFixed(1)),
-      sodium: Number(((parsedBase.sodium || 0) * multiplier).toFixed(1)),
-      sugar: Number(((parsedBase.sugar || 0) * multiplier).toFixed(1)),
-      calcium: Number(((parsedBase.calcium || 0) * multiplier).toFixed(1))
     };
 
     const baseName = entry.name.replace(/\s*\([\d\.]+g\)$/, '');

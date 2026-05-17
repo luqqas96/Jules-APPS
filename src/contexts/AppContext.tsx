@@ -118,7 +118,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                if (!Array.isArray(entries)) return [];
                return entries.map(e => ({
                   ...e,
-                  macros: e.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 }
+                  macros: e.macros || { calories: 0, protein: 0, carbs: 0, fats: 0, cholesterol: 0, sodium: 0, sugar: 0, calcium: 0 }
                }));
             };
             parsed.meals = {
