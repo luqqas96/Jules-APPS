@@ -35,10 +35,10 @@ export async function POST(request: Request) {
       if (missingSheets.includes('Main')) {
          await sheets.spreadsheets.values.update({
             spreadsheetId,
-            range: "'Main'!A1:M1",
+            range: "'Main'!A1:I1",
             valueInputOption: 'USER_ENTERED',
             requestBody: {
-              values: [['Fecha', 'Comida', 'Producto/Marca', 'Cantidad', 'Proteínas (g)', 'Carbohidratos (g)', 'Grasas (g)', 'Calorías (Kcal)', 'Usuario', 'Colesterol (mg)', 'Sodio (mg)', 'Azúcares (g)', 'Calcio (mg)']]
+              values: [['Date', 'Meal', 'Product/Brand', 'Amount', 'Protein (g)', 'Carbs (g)', 'Fats (g)', 'Calories (Kcal)', 'User']]
             }
          });
       }
@@ -77,15 +77,17 @@ export async function POST(request: Request) {
 
     // Check if headers need updating for existing sheets to add User column
     if (!missingSheets.includes('Main')) {
-       const headerRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: "'Main'!A1:M1" });
+       const headerRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: "'Main'!A1:I1" });
        const headers = headerRes.data.values?.[0] || [];
-       if (!headers.includes('Colesterol (mg)') && !headers.includes('Cholesterol (mg)')) {
-         // Overwrite entire header row to ensure all columns are present and correctly translated
+       if (!headers.includes('User')) {
+         // Append 'User' to header if missing. If it's 8 cols, we write to I1.
+         const nextColIndex = headers.length; // 0-based index
+         const colLetter = String.fromCharCode(65 + nextColIndex); // e.g. 'I'
          await sheets.spreadsheets.values.update({
             spreadsheetId,
-            range: `'Main'!A1:M1`,
+            range: `'Main'!${colLetter}1`,
             valueInputOption: 'USER_ENTERED',
-            requestBody: { values: [['Fecha', 'Comida', 'Producto/Marca', 'Cantidad', 'Proteínas (g)', 'Carbohidratos (g)', 'Grasas (g)', 'Calorías (Kcal)', 'Usuario', 'Colesterol (mg)', 'Sodio (mg)', 'Azúcares (g)', 'Calcio (mg)']] }
+            requestBody: { values: [['User']] }
          });
        }
     }
