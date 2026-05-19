@@ -11,6 +11,7 @@ interface AppContextType {
   dailyData: DailyData;
   addEntry: (meal: MealType, entry: Omit<FoodEntry, "id" | "timestamp">) => void;
   removeEntry: (meal: MealType, entryId: string) => void;
+  moveEntry: (fromMeal: MealType, toMeal: MealType, entryId: string) => void;
   updateEntry: (meal: MealType, entryId: string, updatedEntry: Partial<FoodEntry>) => void;
   updateAllMeals: (meals: Record<MealType, FoodEntry[]>) => void;
   clearDay: () => void;
@@ -280,6 +281,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     saveDailyData(newData);
   };
 
+
+  const moveEntry = (fromMeal: MealType, toMeal: MealType, entryId: string) => {
+    const entryToMove = dailyData.meals[fromMeal].find((e) => e.id === entryId);
+    if (!entryToMove) return;
+
+    const newData = {
+      ...dailyData,
+      meals: {
+        ...dailyData.meals,
+        [fromMeal]: dailyData.meals[fromMeal].filter((e) => e.id !== entryId),
+        [toMeal]: [...dailyData.meals[toMeal], entryToMove],
+      },
+    };
+    saveDailyData(newData);
+  };
+
   const updateEntry = (meal: MealType, entryId: string, updatedEntry: Partial<FoodEntry>) => {
     const newData = {
       ...dailyData,
@@ -327,7 +344,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      activeProfile, setProfile, macroGoals, setMacroGoals, dailyData, addEntry, removeEntry, updateEntry, updateAllMeals, clearDay, isLoaded, foodHistory, setDailyWeight, weightHistory
+      activeProfile, setProfile, macroGoals, setMacroGoals, dailyData, addEntry, removeEntry, moveEntry, updateEntry, updateAllMeals, clearDay, isLoaded, foodHistory, setDailyWeight, weightHistory
     }}>
       {children}
     </AppContext.Provider>

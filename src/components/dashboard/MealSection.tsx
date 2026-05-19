@@ -17,7 +17,7 @@ export function MealSection({ mealType }: { mealType: MealType }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editGrams, setEditGrams] = useState<string>("0");
   const [editBaseMacros, setEditBaseMacros] = useState<{calories: string, protein: string, carbs: string, fats: string} | null>(null);
-  const { dailyData, addEntry, removeEntry, updateEntry } = useAppContext();
+  const { dailyData, addEntry, removeEntry, moveEntry: contextMoveEntry, updateEntry } = useAppContext();
   const router = useRouter();
 
   const entries = dailyData.meals[mealType] || [];
@@ -85,8 +85,7 @@ export function MealSection({ mealType }: { mealType: MealType }) {
 
   const moveEntry = (entry: FoodEntry, targetMeal: MealType) => {
     if (targetMeal === mealType) return;
-    removeEntry(mealType, entry.id);
-    addEntry(targetMeal, { name: entry.name, grams: entry.grams, macros: entry.macros, baseMacros: entry.baseMacros });
+    contextMoveEntry(mealType, targetMeal, entry.id);
   };
 
   return (
