@@ -4,7 +4,7 @@ import { getMealName } from "@/lib/translations";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDownIcon, ChevronUpIcon, PlusIcon, TrashIcon, PencilIcon, CheckIcon, XMarkIcon, DocumentDuplicateIcon, ArrowsRightLeftIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, ChevronUpIcon, PlusIcon, TrashIcon, PencilIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { MealType, FoodEntry } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { Card } from "@/components/ui/card";
@@ -17,7 +17,7 @@ export function MealSection({ mealType }: { mealType: MealType }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editGrams, setEditGrams] = useState<string>("0");
   const [editBaseMacros, setEditBaseMacros] = useState<{calories: string, protein: string, carbs: string, fats: string} | null>(null);
-  const { dailyData, addEntry, removeEntry, updateEntry } = useAppContext();
+  const { dailyData, removeEntry, updateEntry } = useAppContext();
   const router = useRouter();
 
   const entries = dailyData.meals[mealType] || [];
@@ -73,21 +73,6 @@ export function MealSection({ mealType }: { mealType: MealType }) {
     setEditingId(null);
   };
 
-  const duplicateEntry = (entry: FoodEntry) => {
-    const newEntry = { ...entry };
-    addEntry(mealType, {
-      name: newEntry.name,
-      grams: newEntry.grams,
-      macros: { ...newEntry.macros },
-      baseMacros: newEntry.baseMacros ? { ...newEntry.baseMacros } : { calories: 0, protein: 0, carbs: 0, fats: 0 }
-    });
-  };
-
-  const moveEntry = (entry: FoodEntry, targetMeal: MealType) => {
-    if (targetMeal === mealType) return;
-    removeEntry(mealType, entry.id);
-    addEntry(targetMeal, { name: entry.name, grams: entry.grams, macros: entry.macros, baseMacros: entry.baseMacros });
-  };
 
   return (
     <Card className="mb-4 overflow-hidden border-none shadow-sm bg-surface">
@@ -201,24 +186,6 @@ export function MealSection({ mealType }: { mealType: MealType }) {
                             <PencilIcon className="w-4 h-4" />
                           </Button>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-blue-400 hover:text-blue-500 hover:bg-blue-50"
-                          onClick={(e) => { e.stopPropagation(); duplicateEntry(entry); }}
-                          title="Duplicar"
-                        >
-                          <DocumentDuplicateIcon className="w-4 h-4" />
-                        </Button>
-                        <select
-                          className="h-8 w-8 text-purple-400 bg-transparent hover:text-purple-500 hover:bg-purple-50 appearance-none cursor-pointer text-center text-xs ml-1"
-                          onChange={(e) => moveEntry(entry, e.target.value as MealType)}
-                          value=""
-                          title="Mover a otra comida"
-                        >
-                          <option value="" disabled>➡️</option>
-                          {["Desayuno", "Almuerzo", "Merienda", "Cena"].filter(m => m !== mealType).map(m => <option key={m} value={m}>{m}</option>)}
-                        </select>
                         <Button
                           variant="ghost"
                           size="icon"

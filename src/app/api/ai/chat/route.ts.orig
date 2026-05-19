@@ -102,10 +102,8 @@ Instructions:
     const responseSchema: Schema = {
         type: Type.OBJECT,
         properties: {
-            action: { type: Type.STRING, enum: ["modify_meals", "chat", "fetch_history"] },
+            action: { type: Type.STRING, enum: ["modify_meals", "chat"] },
             message: { type: Type.STRING, description: "The response message to the user." },
-            history_scope: { type: Type.STRING, enum: ["all", "specific_date"], description: "The scope of history to fetch. Only use if action is fetch_history." },
-            history_date: { type: Type.STRING, description: "The specific date to fetch history for in YYYY-MM-DD format. Only use if action is fetch_history and scope is specific_date." },
             new_foods: {
                 type: Type.ARRAY,
                 items: newFoodSchema,
@@ -138,45 +136,6 @@ Instructions:
 
     try {
       const parsed = JSON.parse(resultText);
-
-      if (parsed.action === "fetch_history") {
-          // Execute history fetch
-          let fetchedHistory = "No history found.";
-          try {
-              const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
-      if (spreadsheetId) {
-                  const sheets = await getSheets();
-                  const res = await sheets.spreadsheets.values.get({
-                      spreadsheetId,
-                      range: "'Main'!A:M",
-                  });
-                  const rows = res.data.values || [];
-                  const filtered = rows.filter((row: any) => {
-                      if (row[0] === 'Fecha' || row[0] === 'Date') return false; // skip header
-                      if (profile && (row[8] || "Lucas") !== profile) return false;
-                      if (parsed.history_scope === "specific_date" && parsed.history_date) {
-                          return row[0] === parsed.history_date;
-                      }
-                      return true;
-                  });
-                  fetchedHistory = JSON.stringify(filtered.slice(-100)); // limit to last 100 entries to avoid token limits
-              }
-          } catch (e) {
-              console.error("Failed to fetch history from sheets", e);
-              fetchedHistory = "Error fetching history.";
-          }
-
-          // Second call to Gemini with the fetched history
-          const secondResponse = await ai.models.generateContent({
-              model: 'gemini-3.1-flash-lite',
-              contents: [
-                  { role: 'user', parts: [{ text: systemPrompt + "\n\nUser Latest Prompt: " + prompt + "\n\nFETCHED HISTORY DATA (JSON Array of rows: [Date, Meal, Product, Amount, Protein, Carbs, Fats, Calories, User, Cholesterol, Sodium, Sugar, Calcium]):\n" + fetchedHistory + "\n\nPlease analyze this data and answer the user's question." }] }
-              ],
-              config: { responseMimeType: "application/json", responseSchema: responseSchema }
-          });
-          const secondParsed = JSON.parse(secondResponse.text || '{"action": "chat", "message": "Failed to analyze history."}');
-          return NextResponse.json(secondParsed);
-      }
 
       if (parsed.action === "modify_meals" && parsed.new_foods && Array.isArray(parsed.new_foods)) {
           // Construct an updated meals object by appending new foods to currentMeals
