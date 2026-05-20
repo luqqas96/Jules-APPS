@@ -16,6 +16,7 @@ export function MealSection({ mealType }: { mealType: MealType }) {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editGrams, setEditGrams] = useState<string>("0");
+  const [editTime, setEditTime] = useState<string>("");
   const [editBaseMacros, setEditBaseMacros] = useState<{calories: string, protein: string, carbs: string, fats: string} | null>(null);
   const { dailyData, addEntry, removeEntry, moveEntry: contextMoveEntry, updateEntry } = useAppContext();
   const router = useRouter();
@@ -26,6 +27,12 @@ export function MealSection({ mealType }: { mealType: MealType }) {
   const startEditing = (entry: FoodEntry) => {
     setEditingId(entry.id);
     setEditGrams((entry.grams || 100).toString());
+    if (entry.timestamp) {
+      const d = new Date(entry.timestamp);
+      setEditTime(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);
+    } else {
+      setEditTime("");
+    }
     if (entry.baseMacros) {
       setEditBaseMacros({
         calories: entry.baseMacros.calories.toString(),
@@ -64,11 +71,21 @@ export function MealSection({ mealType }: { mealType: MealType }) {
     const baseName = entry.name.replace(/\s*\([\d\.]+g\)$/, '');
     const newName = parsedGrams !== 100 ? `${baseName} (${parsedGrams}g)` : baseName;
 
+    let newTimestamp = entry.timestamp;
+    if (editTime && editTime.includes(':')) {
+       const [hh, mm] = editTime.split(':');
+       const d = new Date(entry.timestamp || Date.now());
+       d.setHours(parseInt(hh, 10));
+       d.setMinutes(parseInt(mm, 10));
+       newTimestamp = d.getTime();
+    }
+
     updateEntry(mealType, entry.id, {
       name: newName,
       grams: parsedGrams,
       macros: scaledMacros,
-      baseMacros: parsedBase
+      baseMacros: parsedBase,
+      timestamp: newTimestamp
     });
     setEditingId(null);
   };
@@ -81,6 +98,13 @@ export function MealSection({ mealType }: { mealType: MealType }) {
       macros: { ...newEntry.macros },
       baseMacros: newEntry.baseMacros ? { ...newEntry.baseMacros } : { calories: 0, protein: 0, carbs: 0, fats: 0 }
     });
+  };
+
+
+  const formatTime = (timestamp: number) => {
+    if (!timestamp) return '';
+    const d = new Date(timestamp);
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   };
 
   const moveEntry = (entry: FoodEntry, targetMeal: MealType) => {
@@ -139,6 +163,15 @@ export function MealSection({ mealType }: { mealType: MealType }) {
                         </div>
                       </div>
 
+<div className="flex items-center space-x-2">
+                        <label className="text-xs font-medium w-14">Time:</label>
+                        <Input
+                          type="time"
+                          value={editTime}
+                          onChange={(e) => setEditTime(e.target.value)}
+                          className="w-24 h-8 text-sm px-2"
+                        />
+                      </div>
                       <div className="flex items-center space-x-2">
                         <label className="text-xs font-medium w-14">Grams:</label>
                         <Input
@@ -184,7 +217,7 @@ export function MealSection({ mealType }: { mealType: MealType }) {
                   ) : (
                     <div className="flex justify-between items-center">
                       <div className="flex-1">
-                        <p className="font-medium text-sm line-clamp-1">{entry.name}</p>
+                        <div className="flex items-center space-x-2"><p className="font-medium text-sm line-clamp-1">{entry.name}</p><span className="text-xs text-muted-foreground whitespace-nowrap bg-surface-secondary px-1.5 py-0.5 rounded">{formatTime(entry.timestamp)}</span></div>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {Math.round(entry.macros.calories)} kcal • P: {Math.round(entry.macros.protein)}g • C: {Math.round(entry.macros.carbs)}g • G: {Math.round(entry.macros.fats)}g
                         </p>

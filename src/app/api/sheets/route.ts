@@ -35,10 +35,10 @@ export async function POST(request: Request) {
       if (missingSheets.includes('Main')) {
          await sheets.spreadsheets.values.update({
             spreadsheetId,
-            range: "'Main'!A1:M1",
+            range: "'Main'!A1:N1",
             valueInputOption: 'USER_ENTERED',
             requestBody: {
-              values: [['Fecha', 'Comida', 'Producto/Marca', 'Cantidad', 'Proteínas (g)', 'Carbohidratos (g)', 'Grasas (g)', 'Calorías (Kcal)', 'Usuario', 'Colesterol (mg)', 'Sodio (mg)', 'Azúcares (g)', 'Calcio (mg)']]
+              values: [['Fecha', 'Comida', 'Producto/Marca', 'Cantidad', 'Proteínas (g)', 'Carbohidratos (g)', 'Grasas (g)', 'Calorías (Kcal)', 'Usuario', 'Colesterol (mg)', 'Sodio (mg)', 'Azúcares (g)', 'Calcio (mg)', 'Hora']]
             }
          });
       }
@@ -77,15 +77,15 @@ export async function POST(request: Request) {
 
     // Check if headers need updating for existing sheets to add User column
     if (!missingSheets.includes('Main')) {
-       const headerRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: "'Main'!A1:M1" });
+       const headerRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: "'Main'!A1:N1" });
        const headers = headerRes.data.values?.[0] || [];
-       if (!headers.includes('Colesterol (mg)') && !headers.includes('Cholesterol (mg)')) {
+       if (!headers.includes('Colesterol (mg)') && !headers.includes('Cholesterol (mg)') || !headers.includes('Hora')) {
          // Overwrite entire header row to ensure all columns are present and correctly translated
          await sheets.spreadsheets.values.update({
             spreadsheetId,
-            range: `'Main'!A1:M1`,
+            range: `'Main'!A1:N1`,
             valueInputOption: 'USER_ENTERED',
-            requestBody: { values: [['Fecha', 'Comida', 'Producto/Marca', 'Cantidad', 'Proteínas (g)', 'Carbohidratos (g)', 'Grasas (g)', 'Calorías (Kcal)', 'Usuario', 'Colesterol (mg)', 'Sodio (mg)', 'Azúcares (g)', 'Calcio (mg)']] }
+            requestBody: { values: [['Fecha', 'Comida', 'Producto/Marca', 'Cantidad', 'Proteínas (g)', 'Carbohidratos (g)', 'Grasas (g)', 'Calorías (Kcal)', 'Usuario', 'Colesterol (mg)', 'Sodio (mg)', 'Azúcares (g)', 'Calcio (mg)', 'Hora']] }
          });
        }
     }
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
       // Extend range to M to accommodate the new micronutrients
       const existingRes = await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: "'Main'!A:M"
+        range: "'Main'!A:N"
       });
       existingData = existingRes.data.values || [];
     } catch (e) {
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Format rows according to new layout
-    // Format: Fecha | Comida | Producto/Marca | Cantidad | Proteínas (g) | Carbohidratos (g) | Grasas (g) | Calorías (Kcal) | Usuario | Colesterol (mg) | Sodio (mg) | Azúcares (g) | Calcio (mg)
+    // Format: Fecha | Comida | Producto/Marca | Cantidad | Proteínas (g) | Carbohidratos (g) | Grasas (g) | Calorías (Kcal) | Usuario | Colesterol (mg) | Sodio (mg) | Azúcares (g) | Calcio (mg) | Hora
     const rows: (string | number)[][] = [];
 
     for (const [mealName, entries] of Object.entries(meals)) {
@@ -139,6 +139,15 @@ export async function POST(request: Request) {
 
          const cleanName = entry.name.replace(/\s*\(\d+(?:\.\d+)?g\)$/, '');
 
+         let horaString = '';
+         if (entry.timestamp) {
+            const dateObj = new Date(entry.timestamp);
+            // Quick local timezone fix for Amsterdam (CET/CEST) without complex Intl dependencies
+            // We use the date offset to get Amsterdam time
+            const localDate = new Date(dateObj.toLocaleString("en-US", { timeZone: "Europe/Amsterdam" }));
+            horaString = `${String(localDate.getHours()).padStart(2, '0')}:${String(localDate.getMinutes()).padStart(2, '0')}`;
+         }
+
          const rowData = [
            date,
            mealName,
@@ -152,7 +161,8 @@ export async function POST(request: Request) {
            entry.macros.cholesterol ?? 0,
            entry.macros.sodium ?? 0,
            entry.macros.sugar ?? 0,
-           entry.macros.calcium ?? 0
+           entry.macros.calcium ?? 0,
+           horaString
          ];
 
          // Basic deduplication: check if an identical row already exists in the sheet
@@ -181,7 +191,7 @@ export async function POST(request: Request) {
       // Find the last used row or just append to A:M (including extended macros)
       await sheets.spreadsheets.values.append({
         spreadsheetId,
-        range: "'Main'!A:M",
+        range: "'Main'!A:N",
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: rows,
@@ -267,7 +277,7 @@ export async function GET(request: Request) {
     // Fetch the data from "Main"
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: "'Main'!A:M", // Extended range to M to include User & extended macros
+      range: "'Main'!A:N", // Extended range to M to include User & extended macros
     });
 
     const rows = response.data.values;
@@ -295,10 +305,21 @@ export async function GET(request: Request) {
 
       const mealType = row[1];
       if (meals[mealType]) {
+        let timestamp = Date.now();
+        const timeString = row[13];
+        if (timeString && timeString.includes(':')) {
+           const [hh, mm] = timeString.split(':');
+           const d = new Date(row[0] + 'T00:00:00');
+           d.setHours(parseInt(hh, 10));
+           d.setMinutes(parseInt(mm, 10));
+           timestamp = d.getTime();
+        }
+
         meals[mealType].push({
           id: `history-${idx}`,
           name: row[2],
           grams: row[3],
+          timestamp,
           macros: {
             protein: parseFloat(row[4]) || 0,
             carbs: parseFloat(row[5]) || 0,
