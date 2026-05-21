@@ -79,7 +79,7 @@ export default function EstadisticasPage() {
                     <LineChart data={data.weight} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                       <XAxis dataKey="shortDate" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} dy={10} />
-                      <YAxis domain={['auto', 'auto']} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
+                      <YAxis domain={['dataMin - 1', 'dataMax + 1']} allowDecimals={true} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
                       <Tooltip
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                         formatter={(value: any) => [`${value} kg`, 'Weight']}
