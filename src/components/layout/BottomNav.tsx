@@ -94,6 +94,30 @@ export function BottomNav() {
             </>
           )}
         </Link>
+
+        <Link href="/withings" className="flex flex-col items-center justify-center w-full h-full space-y-1">
+          {pathname === "/withings" ? (
+            <>
+
+              <div className="bg-blue-100 px-4 py-1 rounded-full">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-blue-500">
+                  <path d="M5.4 7C5.4 7 4.1 11.2 3.6 12.8C3.1 14.4 2.8 15.6 2 18.2H5.4L6.9 13.5C7.3 12.2 7.7 11 7.7 11L9.1 15.5C9.5 16.8 9.9 18.2 9.9 18.2H12.6C12.6 18.2 13 16.8 13.5 15.5L14.8 11.2C14.8 11.2 15.2 12.4 15.6 13.6L17.1 18.2H20.5C20.5 18.2 18.2 11 17.6 9C17 7 17 7 17 7H14.4L12.9 11.8L11.5 16C11.5 16 11.1 14.7 10.7 13.5L9.3 9C9.3 9 8.9 7 8.9 7H5.4Z" fill="currentColor"/>
+                </svg>
+              </div>
+              <span className="text-[10px] font-semibold text-foreground">Withings</span>
+
+            </>
+          ) : (
+            <>
+
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-muted-foreground">
+                <path d="M5.4 7C5.4 7 4.1 11.2 3.6 12.8C3.1 14.4 2.8 15.6 2 18.2H5.4L6.9 13.5C7.3 12.2 7.7 11 7.7 11L9.1 15.5C9.5 16.8 9.9 18.2 9.9 18.2H12.6C12.6 18.2 13 16.8 13.5 15.5L14.8 11.2C14.8 11.2 15.2 12.4 15.6 13.6L17.1 18.2H20.5C20.5 18.2 18.2 11 17.6 9C17 7 17 7 17 7H14.4L12.9 11.8L11.5 16C11.5 16 11.1 14.7 10.7 13.5L9.3 9C9.3 9 8.9 7 8.9 7H5.4Z" fill="currentColor"/>
+              </svg>
+              <span className="text-[10px] text-muted-foreground">Withings</span>
+
+            </>
+          )}
+        </Link>
       </div>
     </div>
   );
