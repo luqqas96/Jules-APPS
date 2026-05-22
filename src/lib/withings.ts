@@ -191,3 +191,73 @@ export async function refreshTokens(refreshToken: string): Promise<WithingsToken
     timestamp: Date.now(),
   };
 }
+
+// --- Data Fetching Functions ---
+
+export async function fetchWithingsActivity(accessToken: string, startDate: string, endDate: string) {
+  // Dates must be in YYYY-MM-DD
+  const params = new URLSearchParams({
+    action: 'getactivity',
+    startdateymd: startDate,
+    enddateymd: endDate,
+  });
+
+  const response = await fetch(`https://wbsapi.withings.net/v2/measure`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: params.toString()
+  });
+
+  const data = await response.json();
+  if (data.status !== 0) throw new Error(`Activity fetch failed: ${JSON.stringify(data)}`);
+  return data.body;
+}
+
+export async function fetchWithingsSleep(accessToken: string, startDate: string, endDate: string) {
+  // Dates must be in YYYY-MM-DD
+  const params = new URLSearchParams({
+    action: 'getsummary',
+    startdateymd: startDate,
+    enddateymd: endDate,
+  });
+
+  const response = await fetch(`https://wbsapi.withings.net/v2/sleep`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: params.toString()
+  });
+
+  const data = await response.json();
+  if (data.status !== 0) throw new Error(`Sleep fetch failed: ${JSON.stringify(data)}`);
+  return data.body;
+}
+
+export async function fetchWithingsBody(accessToken: string, meastype: string = '1,8,71,76,88') {
+  // meastypes: 1=Weight, 8=Fat Mass, 71=Body Comp(%), 76=Muscle Mass, 88=Bone Mass
+  // Get latest measurement
+  const params = new URLSearchParams({
+    action: 'getmeas',
+    meastype: meastype,
+    category: '1', // real measures only
+    lastupdate: '0'
+  });
+
+  const response = await fetch(`https://wbsapi.withings.net/measure`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: params.toString()
+  });
+
+  const data = await response.json();
+  if (data.status !== 0) throw new Error(`Body fetch failed: ${JSON.stringify(data)}`);
+  return data.body;
+}
