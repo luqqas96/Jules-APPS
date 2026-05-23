@@ -1,29 +1,43 @@
+
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAppContext } from "@/contexts/AppContext";
 import { useSearchParams } from "next/navigation";
 import { ChartBarIcon, MoonIcon, FireIcon } from "@heroicons/react/24/outline";
 
+
 function WithingsContent() {
   const { activeProfile } = useAppContext();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'connected' | 'disconnected'>('loading');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const [withingsData, setWithingsData] = useState<any>(null);
+  const [withingsData, setWithingsData] = useState<Record<string, unknown> | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  useEffect(() => {
-    // Check for success/error in URL params (from callback redirect)
-    if (searchParams) {
-      if (searchParams.get("success") === "true") {
-         // Successfully connected
+  const fetchData = useCallback(async () => {
+    setIsSyncing(true);
+    try {
+      const res = await fetch(`/api/withings/data?profile=${encodeURIComponent(activeProfile)}`);
+      const data = await res.json();
+      if (res.ok) {
+        setWithingsData(data);
+      } else {
+        setErrorMsg(data.error || "Error al sincronizar datos");
       }
+    } catch (e) {
+      setErrorMsg("Error de red al sincronizar datos");
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [activeProfile]);
+
+  useEffect(() => {
+    if (searchParams) {
       if (searchParams.get("error")) {
-         setErrorMsg(searchParams.get("error"));
+         setTimeout(() => setErrorMsg(searchParams.get("error") || null), 0);
       }
     }
 
@@ -45,33 +59,15 @@ function WithingsContent() {
     };
 
     checkStatusAndData();
-  }, [activeProfile, searchParams, errorMsg]);
-
-  const fetchData = async () => {
-    setIsSyncing(true);
-    try {
-      const res = await fetch(`/api/withings/data?profile=${encodeURIComponent(activeProfile)}`);
-      const data = await res.json();
-      if (res.ok) {
-        setWithingsData(data);
-      } else {
-        setErrorMsg(data.error || "Error al sincronizar datos");
-      }
-    } catch (e) {
-      setErrorMsg("Error de red al sincronizar datos");
-    } finally {
-      setIsSyncing(false);
-    }
-  };
+  }, [activeProfile, searchParams, errorMsg, fetchData]);
 
   const handleConnect = () => {
     window.location.href = `/api/withings/auth?profile=${encodeURIComponent(activeProfile)}`;
   };
 
-  // Formatters
-  const latestActivity = withingsData?.activity?.length > 0 ? withingsData.activity[withingsData.activity.length - 1] : null;
-  const latestSleep = withingsData?.sleep?.length > 0 ? withingsData.sleep[withingsData.sleep.length - 1] : null;
-  const latestBody = withingsData?.body;
+  const latestActivity = (withingsData?.activity as any[])?.length > 0 ? (withingsData?.activity as any[])[(withingsData?.activity as any[]).length - 1] : null;
+  const latestSleep = (withingsData?.sleep as any[])?.length > 0 ? (withingsData?.sleep as any[])[(withingsData?.sleep as any[]).length - 1] : null;
+  const latestBody = withingsData?.body as any;
 
   return (
     <>
@@ -119,7 +115,6 @@ function WithingsContent() {
         </CardContent>
       </Card>
 
-      {/* Data Visualizations */}
       {status === 'connected' && (
         <div className="space-y-4">
           <Card className="bg-surface border-none shadow-sm">
