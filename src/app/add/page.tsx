@@ -31,6 +31,7 @@ function AddFoodForm() {
   const [searchResultsList, setSearchResultsList] = useState<Partial<FoodEntry>[] | null>(null);
   const [grams, setGrams] = useState<string>("100");
   const [manualForm, setManualForm] = useState({ name: "", calories: "", protein: "", carbs: "", fats: "" });
+  const [lastScannedBarcode, setLastScannedBarcode] = useState<string | null>(null);
 
 
   const handleTextSearch = async () => {
@@ -63,24 +64,56 @@ function AddFoodForm() {
     setGrams("100");
   };
 
-  const handleBarcodeResult = async (barcode: string) => {
-    setMode("text"); // stop scanner
+  const handleBarcodeFallback = async (barcode: string) => {
     setLoading(true);
     setResults(null);
-    setSearchQuery(`Código: ${barcode}`);
     try {
-      const res = await fetch(`/api/food/barcode?code=${encodeURIComponent(barcode)}`);
+      const res = await fetch(`/api/food/barcode-fallback?code=${encodeURIComponent(barcode)}`);
       const data = await res.json();
       if (res.ok) {
         setResults(data);
         setSearchResultsList(null);
         setGrams("100");
       } else {
-        // Show clear alert if the API is down to avoid user confusion
-        if (data.error && data.error.includes("caída")) {
-          alert(`Error: ${data.error}\nPor favor ingresa el alimento manualmente por ahora.`);
+        alert(data.error || "No se pudo encontrar el producto en la API alternativa.");
+      }
+    } catch (e) {
+      alert("Error de conexión al usar la API alternativa.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBarcodeResult = async (barcode: string) => {
+    setMode("text"); // stop scanner
+    setLoading(true);
+    setResults(null);
+    setSearchQuery(`Código: ${barcode}`);
+    setLastScannedBarcode(barcode);
+    try {
+      const res = await fetch(`/api/food/barcode?code=${encodeURIComponent(barcode)}`);
+      const data = await res.json();
+      
+      const isOk = res.ok;
+      const isZeros = data.macros && data.macros.calories === 0 && data.macros.protein === 0 && data.macros.carbs === 0 && data.macros.fats === 0;
+
+      if (isOk && !isZeros) {
+        setResults(data);
+        setSearchResultsList(null);
+        setGrams("100");
+      } else {
+        // Fallback logic
+        const confirmMsg = "No se encontraron los datos esperados en la base principal. ¿Quiere utilizar la API alternativa basada en IA?";
+        if (window.confirm(confirmMsg)) {
+           handleBarcodeFallback(barcode);
         } else {
-          alert(data.error || "Product not found");
+           if (isOk) {
+              setResults(data);
+              setSearchResultsList(null);
+              setGrams("100");
+           } else {
+              alert(data.error || "Product not found");
+           }
         }
       }
     } catch (e) {
@@ -352,9 +385,16 @@ function AddFoodForm() {
               </div>
             </div>
 
-            <Button className="w-full" size="lg" variant="mint" onClick={saveEntry}>
-              Add to {getMealName(meal)}
-            </Button>
+            <div className="space-y-3">
+              <Button className="w-full" size="lg" variant="mint" onClick={saveEntry}>
+                Add to {getMealName(meal)}
+              </Button>
+              {lastScannedBarcode && (
+                <Button className="w-full bg-surface-secondary text-foreground hover:bg-surface border border-border" size="lg" variant="outline" onClick={() => handleBarcodeFallback(lastScannedBarcode)}>
+                  Contrastar con IA (API Alternativa)
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
