@@ -32,6 +32,7 @@ function AddFoodForm() {
   const [grams, setGrams] = useState<string>("100");
   const [manualForm, setManualForm] = useState({ name: "", calories: "", protein: "", carbs: "", fats: "" });
   const [lastScannedBarcode, setLastScannedBarcode] = useState<string | null>(null);
+  const [lastScannedName, setLastScannedName] = useState<string | null>(null);
 
 
   const handleTextSearch = async () => {
@@ -64,11 +65,14 @@ function AddFoodForm() {
     setGrams("100");
   };
 
-  const handleBarcodeFallback = async (barcode: string) => {
+  const handleBarcodeFallback = async (barcode: string, productName?: string) => {
     setLoading(true);
     setResults(null);
     try {
-      const res = await fetch(`/api/food/barcode-fallback?code=${encodeURIComponent(barcode)}`);
+      let url = `/api/food/barcode-fallback?code=${encodeURIComponent(barcode)}`;
+      if (productName) url += `&name=${encodeURIComponent(productName)}`;
+      
+      const res = await fetch(url);
       const data = await res.json();
       if (res.ok) {
         setResults(data);
@@ -97,6 +101,12 @@ function AddFoodForm() {
       const isOk = res.ok;
       const isZeros = data.macros && data.macros.calories === 0 && data.macros.protein === 0 && data.macros.carbs === 0 && data.macros.fats === 0;
 
+      if (isOk) {
+         setLastScannedName(data.name || null);
+      } else {
+         setLastScannedName(null);
+      }
+
       if (isOk && !isZeros) {
         setResults(data);
         setSearchResultsList(null);
@@ -105,7 +115,7 @@ function AddFoodForm() {
         // Fallback logic
         const confirmMsg = "No se encontraron los datos esperados en la base principal. ¿Quiere utilizar la API alternativa basada en IA?";
         if (window.confirm(confirmMsg)) {
-           handleBarcodeFallback(barcode);
+           handleBarcodeFallback(barcode, data.name || undefined);
         } else {
            if (isOk) {
               setResults(data);
@@ -390,7 +400,7 @@ function AddFoodForm() {
                 Add to {getMealName(meal)}
               </Button>
               {lastScannedBarcode && (
-                <Button className="w-full bg-surface-secondary text-foreground hover:bg-surface border border-border" size="lg" variant="outline" onClick={() => handleBarcodeFallback(lastScannedBarcode)}>
+                <Button className="w-full bg-surface-secondary text-foreground hover:bg-surface border border-border" size="lg" variant="outline" onClick={() => handleBarcodeFallback(lastScannedBarcode, lastScannedName || undefined)}>
                   Contrastar con IA (API Alternativa)
                 </Button>
               )}

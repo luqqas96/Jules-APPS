@@ -15,17 +15,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Falta configuración de API Key de Gemini' }, { status: 500 });
   }
 
+  let productName = searchParams.get('name');
+
   try {
-    // Paso 1: Obtener el nombre del producto de UPCitemDB
-    const upcUrl = `https://api.upcitemdb.com/prod/trial/lookup?upc=${code}`;
-    const upcRes = await fetch(upcUrl, { cache: 'no-store' });
-    const upcData = await upcRes.json();
+    if (!productName) {
+      // Paso 1: Obtener el nombre del producto de UPCitemDB
+      const upcUrl = `https://api.upcitemdb.com/prod/trial/lookup?upc=${code}`;
+      const upcRes = await fetch(upcUrl, { cache: 'no-store' });
+      const upcData = await upcRes.json();
 
-    if (!upcData.items || upcData.items.length === 0) {
-      return NextResponse.json({ error: 'Producto no encontrado en la base de datos alternativa.' }, { status: 404 });
+      if (!upcData.items || upcData.items.length === 0) {
+        return NextResponse.json({ error: 'Producto no encontrado en la base de datos alternativa.' }, { status: 404 });
+      }
+      productName = upcData.items[0].title;
     }
-
-    const productName = upcData.items[0].title;
 
     // Paso 2: Pedir a Gemini que estime los macros
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -57,7 +60,7 @@ Devuelve la respuesta ESTRICTAMENTE en formato JSON cumpliendo el esquema solici
     };
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite',
+      model: 'gemini-2.5-flash',
       contents: [
         {
           role: 'user',

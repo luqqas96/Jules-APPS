@@ -116,7 +116,7 @@ Instructions:
     };
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite',
+      model: 'gemini-2.5-flash',
       contents: [
         {
           role: 'user',
@@ -168,7 +168,7 @@ Instructions:
 
           // Second call to Gemini with the fetched history
           const secondResponse = await ai.models.generateContent({
-              model: 'gemini-3.1-flash-lite',
+              model: 'gemini-2.5-flash',
               contents: [
                   { role: 'user', parts: [{ text: systemPrompt + "\n\nUser Latest Prompt: " + prompt + "\n\nFETCHED HISTORY DATA (JSON Array of rows: [Date, Meal, Product, Amount, Protein, Carbs, Fats, Calories, User, Cholesterol, Sodium, Sugar, Calcium]):\n" + fetchedHistory + "\n\nPlease analyze this data and answer the user's question." }] }
               ],
