@@ -3,7 +3,7 @@ import { getMealName } from "@/lib/translations";
 
 import { useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PencilSquareIcon, PencilIcon, QrCodeIcon, MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { PencilSquareIcon, PencilIcon, QrCodeIcon, MagnifyingGlassIcon, XMarkIcon, SparklesIcon } from "@heroicons/react/24/outline";
 import { useAppContext } from "@/contexts/AppContext";
 import { MealType, FoodEntry } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ function AddFoodForm() {
   const [manualForm, setManualForm] = useState({ name: "", calories: "", protein: "", carbs: "", fats: "" });
   const [lastScannedBarcode, setLastScannedBarcode] = useState<string | null>(null);
   const [lastScannedName, setLastScannedName] = useState<string | null>(null);
+  const [scannerApi, setScannerApi] = useState<"openfoodfacts" | "ai">("openfoodfacts");
 
 
   const handleTextSearch = async () => {
@@ -94,6 +95,12 @@ function AddFoodForm() {
     setResults(null);
     setSearchQuery(`Código: ${barcode}`);
     setLastScannedBarcode(barcode);
+
+    if (scannerApi === "ai") {
+       handleBarcodeFallback(barcode);
+       return;
+    }
+
     try {
       const res = await fetch(`/api/food/barcode?code=${encodeURIComponent(barcode)}`);
       const data = await res.json();
@@ -323,9 +330,28 @@ function AddFoodForm() {
 
 
       {mode === "barcode" && (
-        <div className="mt-4">
-          <p className="text-sm text-center text-muted-foreground mb-4">Point your camera at the product&apos;s barcode.</p>
-          <BarcodeScanner onResult={handleBarcodeResult} />
+        <div className="mt-4 animate-in fade-in slide-in-from-bottom-4">
+          <div className="mb-6">
+            <label className="block text-xs font-medium text-muted-foreground mb-2 text-center uppercase tracking-wider">Base de datos</label>
+            <div className="flex bg-surface-secondary p-1 rounded-full w-full max-w-[280px] mx-auto border border-border/50">
+              <button
+                className={`flex-1 flex justify-center items-center py-2 px-3 text-xs font-semibold rounded-full transition-all ${scannerApi === "openfoodfacts" ? "bg-surface shadow-sm text-foreground scale-[1.02]" : "text-muted-foreground hover:text-foreground"}`}
+                onClick={() => setScannerApi("openfoodfacts")}
+              >
+                OpenFoodFacts
+              </button>
+              <button
+                className={`flex-1 flex justify-center items-center py-2 px-3 text-xs font-semibold rounded-full transition-all ${scannerApi === "ai" ? "bg-pixel-mint shadow-sm text-white scale-[1.02]" : "text-muted-foreground hover:text-foreground"}`}
+                onClick={() => setScannerApi("ai")}
+              >
+                <SparklesIcon className="w-3.5 h-3.5 mr-1" /> Inteligencia Artificial
+              </button>
+            </div>
+          </div>
+          <p className="text-sm text-center text-muted-foreground mb-4">Apunta tu cámara al código de barras.</p>
+          <div className="rounded-2xl overflow-hidden shadow-sm border border-border">
+             <BarcodeScanner onResult={handleBarcodeResult} />
+          </div>
         </div>
       )}
 
