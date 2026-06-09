@@ -98,7 +98,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
 
         // 2. Reconstruct DailyData from normalized food_logs
-        let daily = { ...defaultDailyData, date: todayStr };
+        let daily = {
+          date: todayStr,
+          meals: {
+            Desayuno: [],
+            Almuerzo: [],
+            Merienda: [],
+            Cena: []
+          } as Record<MealType, FoodEntry[]>
+        } as DailyData;
+        
         if (foodLogsRes.data) {
            foodLogsRes.data.forEach((log: any) => {
               const mealType = log.meal_type as MealType;
@@ -306,7 +315,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const clearDay = () => {
-    setDailyDataState({ ...defaultDailyData, date: getTodayString() });
+    setDailyDataState({
+      date: getTodayString(),
+      meals: {
+        Desayuno: [],
+        Almuerzo: [],
+        Merienda: [],
+        Cena: []
+      }
+    } as DailyData);
     supabase.from('food_logs').delete().eq('profile', activeProfile).eq('date', getTodayString()).then();
   };
 
