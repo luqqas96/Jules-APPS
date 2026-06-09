@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserProfile } from "@/types";
 
+import { DataExportCard } from "@/components/settings/DataExportCard";
+
 export default function SettingsPage() {
   const { activeProfile, setProfile, macroGoals, setMacroGoals, isLoaded } = useAppContext();
   const router = useRouter();
@@ -114,7 +116,9 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Button className="w-full" size="lg" variant="mint" onClick={handleSave}>
+      <DataExportCard />
+
+      <Button className="w-full mt-4" size="lg" variant="mint" onClick={handleSave}>
         Save Goals
       </Button>
     </div>
