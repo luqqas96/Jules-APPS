@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
-import { getSheets } from '@/lib/sheets';
+import { supabase } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   try {
@@ -14,30 +14,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Falta configuración de API Key de Gemini' }, { status: 500 });
     }
 
-    // 1. Fetch user's Dictionary to provide context for personalized recommendations
+    // 1. Fetch user's Dictionary (food_history) from Supabase
     let dictionaryContext = "No history available.";
     try {
-      const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
-      if (spreadsheetId) {
-        const sheets = await getSheets();
-        const dictResponse = await sheets.spreadsheets.values.get({
-          spreadsheetId,
-          range: "'Dictionary'!A:B",
-        });
-        const dictRows = dictResponse.data.values || [];
-        // Extract recent items (limit to 50 for context size)
-        if (dictRows.length > 1) {
-            const items = dictRows.slice(1).slice(-50).map(row => {
-                try {
-                    const parsed = JSON.parse(row[1]);
-                    return `${row[0]}: ${parsed.name} (${parsed.baseMacros.calories}kcal per 100g)`;
-                } catch {
-                    return `${row[0]}: ${row[1]}`;
-                }
-            });
-            dictionaryContext = items.join("\n");
-        }
-      }
+       const { data: dictRows, error } = await supabase
+         .from('food_history')
+         .select('name, base_macros')
+         .eq('profile', profile || "Lucas")
+         .order('updated_at', { ascending: false })
+         .limit(50);
+
+       if (!error && dictRows && dictRows.length > 0) {
+           const items = dictRows.map(row => {
+               const macros = row.base_macros as any;
+               return `- ${row.name} (${macros.calories || 0}kcal per 100g)`;
+           });
+           dictionaryContext = items.join("\n");
+       }
     } catch (e) {
       console.error("Failed to fetch dictionary for AI context", e);
     }
@@ -56,7 +49,7 @@ Macro Goals: Calories: ${macroGoals.calories}, Protein: ${macroGoals.protein}g, 
 Current Daily Consumption: Calories: ${Math.round(currentTotals.calories)}, Protein: ${Math.round(currentTotals.protein)}g, Carbs: ${Math.round(currentTotals.carbs)}g, Fats: ${Math.round(currentTotals.fats)}g
 Remaining Calories: ${Math.round(macroGoals.calories - currentTotals.calories)}
 
-User's Historically Consumed Foods (Google Sheets Dictionary):
+User's Historically Consumed Foods:
 ${dictionaryContext}
 
 Current Daily Meals JSON:
@@ -141,37 +134,36 @@ Instructions:
       const parsed = JSON.parse(resultText);
 
       if (parsed.action === "fetch_history") {
-          // Execute history fetch
           let fetchedHistory = "No history found.";
           try {
-              const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
-      if (spreadsheetId) {
-                  const sheets = await getSheets();
-                  const res = await sheets.spreadsheets.values.get({
-                      spreadsheetId,
-                      range: "'Main'!A:M",
-                  });
-                  const rows = res.data.values || [];
-                  const filtered = rows.filter((row: any) => {
-                      if (row[0] === 'Fecha' || row[0] === 'Date') return false; // skip header
-                      if (profile && (row[8] || "Lucas") !== profile) return false;
-                      if (parsed.history_scope === "specific_date" && parsed.history_date) {
-                          return row[0] === parsed.history_date;
-                      }
-                      return true;
-                  });
-                  fetchedHistory = JSON.stringify(filtered.slice(-100)); // limit to last 100 entries to avoid token limits
+              let query = supabase.from('food_logs').select('*').eq('profile', profile || "Lucas").order('date', { ascending: false }).limit(200);
+              
+              if (parsed.history_scope === "specific_date" && parsed.history_date) {
+                  query = supabase.from('food_logs').select('*').eq('profile', profile || "Lucas").eq('date', parsed.history_date);
+              }
+              
+              const { data: foodRows, error: foodError } = await query;
+              
+              if (!foodError && foodRows && foodRows.length > 0) {
+                  const flattened = foodRows.map(row => ({
+                      Date: row.date,
+                      Meal: row.meal_type,
+                      Product: row.product_name,
+                      Amount: row.amount,
+                      Calories: row.calories,
+                      Protein: row.protein
+                  }));
+                  fetchedHistory = JSON.stringify(flattened.slice(0, 100));
               }
           } catch (e) {
-              console.error("Failed to fetch history from sheets", e);
+              console.error("Failed to fetch history from Supabase", e);
               fetchedHistory = "Error fetching history.";
           }
 
-          // Second call to Gemini with the fetched history
           const secondResponse = await ai.models.generateContent({
               model: 'gemini-3.1-flash-lite',
               contents: [
-                  { role: 'user', parts: [{ text: systemPrompt + "\n\nUser Latest Prompt: " + prompt + "\n\nFETCHED HISTORY DATA (JSON Array of rows: [Date, Meal, Product, Amount, Protein, Carbs, Fats, Calories, User, Cholesterol, Sodium, Sugar, Calcium]):\n" + fetchedHistory + "\n\nPlease analyze this data and answer the user's question." }] }
+                  { role: 'user', parts: [{ text: systemPrompt + "\n\nUser Latest Prompt: " + prompt + "\n\nFETCHED HISTORY DATA (JSON):\n" + fetchedHistory + "\n\nPlease analyze this data and answer the user's question." }] }
               ],
               config: { responseMimeType: "application/json", responseSchema: responseSchema }
           });
@@ -180,18 +172,16 @@ Instructions:
       }
 
       if (parsed.action === "modify_meals" && parsed.new_foods && Array.isArray(parsed.new_foods)) {
-          // Construct an updated meals object by appending new foods to currentMeals
           const updatedMeals = JSON.parse(JSON.stringify(currentMeals)); // Deep copy
 
           parsed.new_foods.forEach((food: any) => {
-             // Fallback mapping in case AI disobeys instruction
              let targetMeal = food.mealType;
              const mLow = targetMeal.toLowerCase();
              if (mLow.includes("break") || mLow.includes("desay")) targetMeal = "Desayuno";
              else if (mLow.includes("lunch") || mLow.includes("almuerz")) targetMeal = "Almuerzo";
              else if (mLow.includes("snack") || mLow.includes("meriend")) targetMeal = "Merienda";
              else if (mLow.includes("dinner") || mLow.includes("cena")) targetMeal = "Cena";
-             else targetMeal = "Merienda"; // Safe default
+             else targetMeal = "Merienda";
 
              if (updatedMeals[targetMeal]) {
                 updatedMeals[targetMeal].push({
@@ -206,7 +196,7 @@ Instructions:
           });
 
           parsed.meals = updatedMeals;
-          delete parsed.new_foods; // Clean up payload
+          delete parsed.new_foods; 
       } else if (parsed.action === "modify_meals") {
           parsed.action = "chat";
           parsed.message = parsed.message || "I couldn't modify the meals properly.";

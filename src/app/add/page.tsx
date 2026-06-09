@@ -110,15 +110,18 @@ function AddFoodForm() {
     setResults(null);
     setSearchResultsList(null);
     
-    const query = searchQuery.toLowerCase();
+    // Normalize string: remove accents, to lower case
+    const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    
+    const query = normalize(searchQuery);
     const uniqueFoods = new Map<string, Partial<FoodEntry>>();
     
-    // Buscar en el historial
+    // 1. Buscar en el historial local primero
     if (foodHistory && foodHistory.length > 0) {
       foodHistory.forEach(item => {
-        if (item.name.toLowerCase().includes(query)) {
-          if (!uniqueFoods.has(item.name.toLowerCase())) {
-            uniqueFoods.set(item.name.toLowerCase(), { name: item.name, macros: item.baseMacros });
+        if (normalize(item.name).includes(query)) {
+          if (!uniqueFoods.has(normalize(item.name))) {
+            uniqueFoods.set(normalize(item.name), { name: item.name, macros: item.baseMacros });
           }
         }
       });
@@ -128,11 +131,26 @@ function AddFoodForm() {
     
     if (resultsArray.length > 0) {
       setSearchResultsList(resultsArray);
+      setLoading(false);
     } else {
-      setSearchResultsList([]);
-      alert("No se encontraron alimentos en tu historial.");
+      // 2. Si no hay en historial, buscar en internet (OpenFoodFacts)
+      try {
+        const res = await fetch(`/api/food/search?q=${encodeURIComponent(searchQuery)}`);
+        const data = await res.json();
+        if (res.ok && Array.isArray(data)) {
+          setSearchResultsList(data);
+        } else if (res.ok && !Array.isArray(data)) {
+          setResults(data);
+          setGrams("100");
+        } else {
+          alert(data.error || "No se encontró el alimento en la base de datos de internet.");
+        }
+      } catch (e) {
+        alert("Error de conexión al buscar en internet.");
+      } finally {
+        setLoading(false);
+      }
     }
-    setLoading(false);
   };
 
   const handleSelectSearchResult = (item: Partial<FoodEntry>) => {

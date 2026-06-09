@@ -1,56 +1,33 @@
 import { NextResponse } from 'next/server';
-import { getSheets } from '@/lib/sheets';
+import { supabase } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
-    if (!spreadsheetId) {
-      return NextResponse.json({ error: 'Falta configurar ID de Spreadsheet' }, { status: 500 });
-    }
+    const { data, error } = await supabase.from('food_history').select('*');
 
-    const sheets = await getSheets();
-
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: "'Dictionary'!A:B",
-    });
-
-    const rows = response.data.values;
-    if (!rows || rows.length <= 1) {
-      return NextResponse.json({ dictionary: {} });
+    if (error) {
+      throw error;
     }
 
     const dictionary: Record<string, any[]> = {
-      Breakfast: [],
-      Lunch: [],
-      Snack: [],
-      Dinner: []
+      All: []
     };
 
-    rows.slice(1).forEach(row => {
-      const mealType = row[0];
-      const productJson = row[1];
-      if (mealType && productJson) {
-         try {
-           const parsed = JSON.parse(productJson);
-           if (!dictionary[mealType]) dictionary[mealType] = [];
-           dictionary[mealType].push(parsed);
-         } catch(e) {
-           // ignore bad json
-         }
-      }
-    });
-
-    // Sort alphabetically
-    for (const meal in dictionary) {
-       dictionary[meal].sort((a, b) => a.name.localeCompare(b.name));
+    if (data && data.length > 0) {
+       data.forEach(row => {
+          dictionary.All.push({
+             name: row.name,
+             baseMacros: row.base_macros
+          });
+       });
+       dictionary.All.sort((a, b) => a.name.localeCompare(b.name));
     }
 
     return NextResponse.json({ dictionary });
   } catch (error: unknown) {
-    console.error('Error fetching dictionary:', error);
+    console.error('Error fetching dictionary from Supabase:', error);
     return NextResponse.json({ error: 'Error leyendo diccionario' }, { status: 500 });
   }
 }
