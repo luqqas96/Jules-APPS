@@ -86,7 +86,7 @@ export default function HistorialPage() {
 
         {loading && (
           <div className="text-center text-muted-foreground animate-pulse mt-10">
-            Fetching records from Google Sheets...
+            Fetching records from Database...
           </div>
         )}
 
@@ -168,7 +168,7 @@ export default function HistorialPage() {
 
               {totalCals === 0 && (
                 <div className="text-center py-10 text-muted-foreground">
-                  No food recorded in Google Sheets for this date.
+                  No food recorded in the database for this date.
                 </div>
               )}
             </div>
