@@ -226,10 +226,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
        meal_type: meal,
        product_name: entry.name,
        amount: entry.grams,
-       protein: entry.macros.protein,
-       carbs: entry.macros.carbs,
-       fats: entry.macros.fats,
-       calories: entry.macros.calories,
+       protein: entry.macros.protein || 0,
+       carbs: entry.macros.carbs || 0,
+       fats: entry.macros.fats || 0,
+       calories: entry.macros.calories || 0,
        cholesterol: entry.macros.cholesterol || 0,
        sodium: entry.macros.sodium || 0,
        sugar: entry.macros.sugar || 0,
@@ -299,10 +299,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateAllMeals = (meals: Record<MealType, FoodEntry[]>) => {
-    // This is primarily used for reordering, not supported in relational DB without a 'sort_order' column.
-    // For now we just update frontend state.
+  const updateAllMeals = async (meals: Record<MealType, FoodEntry[]>) => {
     setDailyDataState({ ...dailyData, meals });
+
+    const todayStr = getTodayString();
+    
+    // Sync with Supabase
+    try {
+      const { data: currentLogs } = await supabase.from('food_logs').select('id').eq('profile', activeProfile).eq('date', todayStr);
+      const existingIds = currentLogs?.map(l => l.id) || [];
+      
+      const newMealsFlat = Object.entries(meals).flatMap(([meal, entries]) => entries.map(e => ({ ...e, meal })));
+      const newIds = newMealsFlat.map(e => e.id);
+      
+      const idsToDelete = existingIds.filter(id => !newIds.includes(id));
+      if (idsToDelete.length > 0) {
+        await supabase.from('food_logs').delete().in('id', idsToDelete);
+      }
+
+      if (newMealsFlat.length > 0) {
+        const upsertData = newMealsFlat.map(entry => {
+          const d = new Date(entry.timestamp || Date.now());
+          const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+          return {
+            id: entry.id,
+            profile: activeProfile,
+            date: todayStr,
+            time,
+            meal_type: entry.meal,
+            product_name: entry.name,
+            amount: entry.grams || 0,
+            protein: entry.macros.protein || 0,
+            carbs: entry.macros.carbs || 0,
+            fats: entry.macros.fats || 0,
+            calories: entry.macros.calories || 0,
+            cholesterol: entry.macros.cholesterol || 0,
+            sodium: entry.macros.sodium || 0,
+            sugar: entry.macros.sugar || 0,
+            calcium: entry.macros.calcium || 0
+          };
+        });
+        await supabase.from('food_logs').upsert(upsertData, { onConflict: 'id' });
+      }
+    } catch (e) {
+      console.error("Error syncing updateAllMeals to Supabase", e);
+    }
   };
 
   const setDailyWeight = (weight: number) => {
