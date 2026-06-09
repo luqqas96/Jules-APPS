@@ -60,7 +60,7 @@ Devuelve la respuesta ESTRICTAMENTE en formato JSON cumpliendo el esquema solici
     };
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.1-flash-lite',
       contents: [
         {
           role: 'user',

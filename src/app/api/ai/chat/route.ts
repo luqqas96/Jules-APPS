@@ -69,6 +69,7 @@ Instructions:
 - If making a recommendation, USE their historical foods from the dictionary above to suggest things they actually eat.
 - Keep "chat" messages concise (1-3 short paragraphs).
 - If adding foods, calculate the macros accurately based on their request. Return the scaled \`macros\` and the \`baseMacros\` (per 100g or per unit base).
+- CRITICAL: If the user asks to add or log a food by units (e.g., "agregue 2 oreos"), you MUST estimate the weight in grams (e.g. 1 oreo = 11g) and calculate the macros. YOU MUST choose "modify_meals". Do not fall back to "chat" just because you are estimating.
 - IMPORTANT: For \`mealType\`, you MUST strictly map the user's request to one of these exact values: "Desayuno" (for breakfast), "Almuerzo" (for lunch), "Merienda" (for snack/afternoon tea), or "Cena" (for dinner).
 - ALWAYS respond in the language the user speaks to you in (likely Spanish).`;
 
@@ -116,7 +117,7 @@ Instructions:
     };
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.1-flash-lite',
       contents: [
         {
           role: 'user',
@@ -168,7 +169,7 @@ Instructions:
 
           // Second call to Gemini with the fetched history
           const secondResponse = await ai.models.generateContent({
-              model: 'gemini-2.5-flash',
+              model: 'gemini-3.1-flash-lite',
               contents: [
                   { role: 'user', parts: [{ text: systemPrompt + "\n\nUser Latest Prompt: " + prompt + "\n\nFETCHED HISTORY DATA (JSON Array of rows: [Date, Meal, Product, Amount, Protein, Carbs, Fats, Calories, User, Cholesterol, Sodium, Sugar, Calcium]):\n" + fetchedHistory + "\n\nPlease analyze this data and answer the user's question." }] }
               ],
