@@ -3,7 +3,7 @@ import { getMealName } from "@/lib/translations";
 
 import { useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PencilSquareIcon, PencilIcon, QrCodeIcon, MagnifyingGlassIcon, XMarkIcon, SparklesIcon } from "@heroicons/react/24/outline";
+import { PencilSquareIcon, PencilIcon, QrCodeIcon, MagnifyingGlassIcon, XMarkIcon, SparklesIcon, CameraIcon } from "@heroicons/react/24/outline";
 import { useAppContext } from "@/contexts/AppContext";
 import { MealType, FoodEntry } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import BarcodeScanner from "@/components/add/BarcodeScanner";
 
-type InputMode = "text" | "barcode" | "manual";
+type InputMode = "text" | "barcode" | "manual" | "lens";
 
 function AddFoodForm() {
   const router = useRouter();
@@ -33,7 +33,75 @@ function AddFoodForm() {
   const [manualForm, setManualForm] = useState({ name: "", calories: "", protein: "", carbs: "", fats: "" });
   const [lastScannedBarcode, setLastScannedBarcode] = useState<string | null>(null);
   const [lastScannedName, setLastScannedName] = useState<string | null>(null);
-  const [scannerApi, setScannerApi] = useState<"openfoodfacts" | "ai">("openfoodfacts");
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    setResults(null);
+    setSearchResultsList(null);
+    setLastScannedBarcode(null);
+    setLastScannedName(null);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = async () => {
+          const canvas = canvasRef.current;
+          if (!canvas) return;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return;
+
+          // Resize max 800px width/height
+          const MAX_SIZE = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height && width > MAX_SIZE) {
+            height *= MAX_SIZE / width;
+            width = MAX_SIZE;
+          } else if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height;
+            height = MAX_SIZE;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const base64DataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          const base64 = base64DataUrl.split(',')[1];
+
+          try {
+             const res = await fetch('/api/ai/lens', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: base64, mimeType: 'image/jpeg' })
+             });
+             const data = await res.json();
+             if (res.ok) {
+                setResults(data);
+                setGrams("100");
+             } else {
+                alert(data.error || "Error al analizar imagen.");
+             }
+          } catch (err) {
+             alert("Error de conexión con IA visual.");
+          } finally {
+             setLoading(false);
+          }
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      alert("Error al leer archivo.");
+      setLoading(false);
+    }
+  };
 
 
   const handleTextSearch = async () => {
@@ -41,23 +109,30 @@ function AddFoodForm() {
     setLoading(true);
     setResults(null);
     setSearchResultsList(null);
-    try {
-      const res = await fetch(`/api/food/search?q=${encodeURIComponent(searchQuery)}`);
-      const data = await res.json();
-      if (res.ok && Array.isArray(data)) {
-        setSearchResultsList(data);
-      } else if (res.ok && !Array.isArray(data)) {
-        // Fallback si la API devuelve un solo objeto
-        setResults(data);
-        setGrams("100");
-      } else {
-        alert(data.error || "Search error");
-      }
-    } catch (e) {
-      alert("Connection error");
-    } finally {
-      setLoading(false);
+    
+    const query = searchQuery.toLowerCase();
+    const uniqueFoods = new Map<string, Partial<FoodEntry>>();
+    
+    // Buscar en el historial
+    if (foodHistory && foodHistory.length > 0) {
+      foodHistory.forEach(item => {
+        if (item.name.toLowerCase().includes(query)) {
+          if (!uniqueFoods.has(item.name.toLowerCase())) {
+            uniqueFoods.set(item.name.toLowerCase(), { name: item.name, macros: item.baseMacros });
+          }
+        }
+      });
     }
+
+    const resultsArray = Array.from(uniqueFoods.values());
+    
+    if (resultsArray.length > 0) {
+      setSearchResultsList(resultsArray);
+    } else {
+      setSearchResultsList([]);
+      alert("No se encontraron alimentos en tu historial.");
+    }
+    setLoading(false);
   };
 
   const handleSelectSearchResult = (item: Partial<FoodEntry>) => {
@@ -66,12 +141,11 @@ function AddFoodForm() {
     setGrams("100");
   };
 
-  const handleBarcodeFallback = async (barcode: string, productName?: string) => {
+  const handleBarcodeFallback = async (productName: string) => {
     setLoading(true);
     setResults(null);
     try {
-      let url = `/api/food/barcode-fallback?code=${encodeURIComponent(barcode)}`;
-      if (productName) url += `&name=${encodeURIComponent(productName)}`;
+      const url = `/api/food/barcode-fallback?name=${encodeURIComponent(productName)}`;
       
       const res = await fetch(url);
       const data = await res.json();
@@ -96,11 +170,6 @@ function AddFoodForm() {
     setSearchQuery(`Código: ${barcode}`);
     setLastScannedBarcode(barcode);
 
-    if (scannerApi === "ai") {
-       handleBarcodeFallback(barcode);
-       return;
-    }
-
     try {
       const res = await fetch(`/api/food/barcode?code=${encodeURIComponent(barcode)}`);
       const data = await res.json();
@@ -119,18 +188,12 @@ function AddFoodForm() {
         setSearchResultsList(null);
         setGrams("100");
       } else {
-        // Fallback logic
-        const confirmMsg = "No se encontraron los datos esperados en la base principal. ¿Quiere utilizar la API alternativa basada en IA?";
-        if (window.confirm(confirmMsg)) {
-           handleBarcodeFallback(barcode, data.name || undefined);
+        // Input Manual + IA Fallback
+        const productName = window.prompt("No se encontró el producto o no tiene datos nutricionales.\n\nPor favor, escribe el nombre del producto (ej. 'Galletas Oreo') y la IA calculará los macros automáticamente:", data.name || "");
+        if (productName && productName.trim() !== "") {
+           handleBarcodeFallback(productName.trim());
         } else {
-           if (isOk) {
-              setResults(data);
-              setSearchResultsList(null);
-              setGrams("100");
-           } else {
-              alert(data.error || "Product not found");
-           }
+           alert("Búsqueda cancelada.");
         }
       }
     } catch (e) {
@@ -186,22 +249,28 @@ function AddFoodForm() {
 
       <div className="flex bg-surface-secondary p-1 rounded-full mb-6">
         <button
-          className={`flex-1 flex justify-center items-center py-2 text-sm font-medium rounded-full transition-colors ${mode === "text" ? "bg-surface shadow-sm text-foreground" : "text-muted-foreground"}`}
+          className={`flex-1 flex justify-center items-center py-2 text-xs font-medium rounded-full transition-colors ${mode === "text" ? "bg-surface shadow-sm text-foreground" : "text-muted-foreground"}`}
           onClick={() => setMode("text")}
         >
-          <MagnifyingGlassIcon className="w-4 h-4 mr-2" /> Texto
+          <MagnifyingGlassIcon className="w-4 h-4 mr-1" /> Buscar
         </button>
         <button
-          className={`flex-1 flex justify-center items-center py-2 text-sm font-medium rounded-full transition-colors ${mode === "barcode" ? "bg-surface shadow-sm text-foreground" : "text-muted-foreground"}`}
+          className={`flex-1 flex justify-center items-center py-2 text-xs font-medium rounded-full transition-colors ${mode === "lens" ? "bg-surface shadow-sm text-foreground" : "text-muted-foreground"}`}
+          onClick={() => setMode("lens")}
+        >
+          <CameraIcon className="w-4 h-4 mr-1" /> Lens
+        </button>
+        <button
+          className={`flex-1 flex justify-center items-center py-2 text-xs font-medium rounded-full transition-colors ${mode === "barcode" ? "bg-surface shadow-sm text-foreground" : "text-muted-foreground"}`}
           onClick={() => setMode("barcode")}
         >
-          <QrCodeIcon className="w-4 h-4 mr-2" /> Escanear
+          <QrCodeIcon className="w-4 h-4 mr-1" /> Escanear
         </button>
         <button
-          className={`flex-1 flex justify-center items-center py-2 text-sm font-medium rounded-full transition-colors ${mode === "manual" ? "bg-surface shadow-sm text-foreground" : "text-muted-foreground"}`}
+          className={`flex-1 flex justify-center items-center py-2 text-xs font-medium rounded-full transition-colors ${mode === "manual" ? "bg-surface shadow-sm text-foreground" : "text-muted-foreground"}`}
           onClick={() => setMode("manual")}
         >
-          <PencilSquareIcon className="w-4 h-4 mr-2" /> Propio
+          <PencilSquareIcon className="w-4 h-4 mr-1" /> Propio
         </button>
       </div>
 
@@ -331,27 +400,36 @@ function AddFoodForm() {
 
       {mode === "barcode" && (
         <div className="mt-4 animate-in fade-in slide-in-from-bottom-4">
-          <div className="mb-6">
-            <label className="block text-xs font-medium text-muted-foreground mb-2 text-center uppercase tracking-wider">Base de datos</label>
-            <div className="flex bg-surface-secondary p-1 rounded-full w-full max-w-[280px] mx-auto border border-border/50">
-              <button
-                className={`flex-1 flex justify-center items-center py-2 px-3 text-xs font-semibold rounded-full transition-all ${scannerApi === "openfoodfacts" ? "bg-surface shadow-sm text-foreground scale-[1.02]" : "text-muted-foreground hover:text-foreground"}`}
-                onClick={() => setScannerApi("openfoodfacts")}
-              >
-                OpenFoodFacts
-              </button>
-              <button
-                className={`flex-1 flex justify-center items-center py-2 px-3 text-xs font-semibold rounded-full transition-all ${scannerApi === "ai" ? "bg-pixel-mint shadow-sm text-white scale-[1.02]" : "text-muted-foreground hover:text-foreground"}`}
-                onClick={() => setScannerApi("ai")}
-              >
-                <SparklesIcon className="w-3.5 h-3.5 mr-1" /> Inteligencia Artificial
-              </button>
-            </div>
-          </div>
           <p className="text-sm text-center text-muted-foreground mb-4">Apunta tu cámara al código de barras.</p>
           <div className="rounded-2xl overflow-hidden shadow-sm border border-border">
              <BarcodeScanner onResult={handleBarcodeResult} />
           </div>
+        </div>
+      )}
+
+      {mode === "lens" && (
+        <div className="mt-4 animate-in fade-in slide-in-from-bottom-4 text-center">
+          <div className="mb-6 flex flex-col items-center">
+            <div className="w-16 h-16 bg-surface-secondary rounded-full flex items-center justify-center mb-4">
+               <CameraIcon className="w-8 h-8 text-pixel-mint" />
+            </div>
+            <h3 className="font-medium text-lg text-foreground">Inteligencia Artificial Visual</h3>
+            <p className="text-sm text-muted-foreground max-w-xs mt-2">
+              Toma una foto a tu plato de comida o empaque. Gemini Vision identificará qué es y calculará sus nutrientes.
+            </p>
+          </div>
+          <Button variant="mint" size="lg" className="relative overflow-hidden group">
+            <CameraIcon className="w-5 h-5 mr-2" />
+            <span>Abrir Cámara / Galería</span>
+            <input 
+              type="file" 
+              accept="image/*" 
+              capture="environment"
+              onChange={handleImageUpload}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
+          </Button>
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
         </div>
       )}
 
@@ -426,7 +504,12 @@ function AddFoodForm() {
                 Add to {getMealName(meal)}
               </Button>
               {lastScannedBarcode && (
-                <Button className="w-full bg-surface-secondary text-foreground hover:bg-surface border border-border" size="lg" variant="outline" onClick={() => handleBarcodeFallback(lastScannedBarcode, lastScannedName || undefined)}>
+                <Button className="w-full bg-surface-secondary text-foreground hover:bg-surface border border-border" size="lg" variant="outline" onClick={() => {
+                   const productName = window.prompt("Calcular con IA Manual.\n\nEscribe el nombre del producto:", lastScannedName || "");
+                   if (productName && productName.trim() !== "") {
+                      handleBarcodeFallback(productName.trim());
+                   }
+                }}>
                   Contrastar con IA (API Alternativa)
                 </Button>
               )}
