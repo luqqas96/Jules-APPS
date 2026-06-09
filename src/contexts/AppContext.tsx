@@ -80,7 +80,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // 1. Fetch Settings & History
         const [settingsRes, historyRes, foodLogsRes, weightRes] = await Promise.all([
           supabase.from('user_settings').select('*').eq('profile', profile).single(),
-          supabase.from('food_history').select('*').eq('profile', profile).order('updated_at', { ascending: false }).limit(50),
+          supabase.from('food_history').select('*').eq('profile', profile).order('updated_at', { ascending: false }),
           supabase.from('food_logs').select('*').eq('profile', profile).eq('date', todayStr),
           supabase.from('weight_logs').select('*').eq('profile', profile).eq('date', todayStr).single()
         ]);
@@ -240,7 +240,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setFoodHistoryState(prev => {
       const exists = prev.some(item => item.name === baseName);
       if (exists) return prev;
-      const newHistory = [{ name: baseName, baseMacros: entry.baseMacros }, ...prev].slice(0, 50);
+      const newHistory = [{ name: baseName, baseMacros: entry.baseMacros }, ...prev];
       supabase.from('food_history').upsert({ profile: activeProfile, name: baseName, base_macros: entry.baseMacros }).then();
       return newHistory;
     });
