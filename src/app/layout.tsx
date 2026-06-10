@@ -13,6 +13,10 @@ export const metadata: Metadata = {
   title: "Nutrition",
   description: "Daily Nutrition Tracker",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon-192x192.png",
+    apple: "/apple-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
