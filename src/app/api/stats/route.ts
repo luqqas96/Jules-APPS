@@ -7,10 +7,24 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const profile = searchParams.get('profile') || "Lucas";
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
+    let foodQuery = supabase.from('food_logs').select('date, calories, protein, carbs, fats').eq('profile', profile);
+    let weightQuery = supabase.from('weight_logs').select('date, weight').eq('profile', profile).order('date', { ascending: true });
+
+    if (startDate) {
+        foodQuery = foodQuery.gte('date', startDate);
+        weightQuery = weightQuery.gte('date', startDate);
+    }
+    if (endDate) {
+        foodQuery = foodQuery.lte('date', endDate);
+        weightQuery = weightQuery.lte('date', endDate);
+    }
 
     const [foodRes, weightRes] = await Promise.all([
-       supabase.from('food_logs').select('date, calories, protein, carbs, fats').eq('profile', profile),
-       supabase.from('weight_logs').select('date, weight').eq('profile', profile).order('date', { ascending: true })
+       foodQuery,
+       weightQuery
     ]);
 
     if (foodRes.error) throw foodRes.error;

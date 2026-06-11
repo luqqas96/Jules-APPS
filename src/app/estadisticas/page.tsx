@@ -5,31 +5,63 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend, ReferenceLine, Cell } from 'recharts';
 import { useAppContext } from "@/contexts/AppContext";
 
+type FilterType = 'all' | 'month' | 'week' | 'custom';
+
 export default function EstadisticasPage() {
   const [data, setData] = useState<{ weight: any[], macros: any[], advancedStats?: any }>({ weight: [], macros: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  
+  const [filterType, setFilterType] = useState<FilterType>('week');
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+
   const { macroGoals, activeProfile } = useAppContext();
 
   useEffect(() => {
     const fetchStats = async () => {
+      setLoading(true);
+      setError("");
       try {
-        const res = await fetch(`/api/stats?profile=${activeProfile}`);
-        const json = await res.json();
-        if (res.ok) {
-          // Tomamos los ultimos 14 dias para que no se sature en movil
-          const recentWeight = json.weight.slice(-14);
-          const recentMacros = json.macros.slice(-14);
+        let url = `/api/stats?profile=${activeProfile}`;
+        
+        const today = new Date();
+        let startStr = "";
+        let endStr = today.toISOString().split('T')[0];
 
-          // Formatear fechas
+        if (filterType === 'week') {
+          const lastWeek = new Date(today);
+          lastWeek.setDate(today.getDate() - 7);
+          startStr = lastWeek.toISOString().split('T')[0];
+        } else if (filterType === 'month') {
+          const lastMonth = new Date(today);
+          lastMonth.setDate(today.getDate() - 30);
+          startStr = lastMonth.toISOString().split('T')[0];
+        } else if (filterType === 'custom') {
+          if (!customStart || !customEnd) {
+            setLoading(false);
+            return; // Wait for user to select dates
+          }
+          startStr = customStart;
+          endStr = customEnd;
+        }
+
+        if (filterType !== 'all' && startStr) {
+          url += `&startDate=${startStr}&endDate=${endStr}`;
+        }
+
+        const res = await fetch(url);
+        const json = await res.json();
+        
+        if (res.ok) {
           const formatData = (arr: any[]) => arr.map(item => ({
             ...item,
             shortDate: new Date(item.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })
           }));
 
           setData({
-            weight: formatData(recentWeight),
-            macros: formatData(recentMacros),
+            weight: formatData(json.weight),
+            macros: formatData(json.macros),
             advancedStats: json.advancedStats
           });
         } else {
@@ -42,7 +74,7 @@ export default function EstadisticasPage() {
       }
     };
     fetchStats();
-  }, []);
+  }, [activeProfile, filterType, customStart, customEnd]);
 
   return (
     <main className="min-h-screen bg-background pb-24">
@@ -51,6 +83,41 @@ export default function EstadisticasPage() {
       </header>
 
       <div className="p-4 max-w-md mx-auto mt-4 space-y-6">
+        
+        <Card className="bg-surface border-none shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Filtro de Fechas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <select 
+              value={filterType} 
+              onChange={(e) => setFilterType(e.target.value as FilterType)}
+              className="w-full p-2 mb-4 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-pixel-lavender text-sm"
+            >
+              <option value="week">Última semana</option>
+              <option value="month">Último mes</option>
+              <option value="all">Todos los días</option>
+              <option value="custom">Rango seleccionado</option>
+            </select>
+
+            {filterType === 'custom' && (
+              <div className="flex gap-2">
+                <input 
+                  type="date" 
+                  value={customStart} 
+                  onChange={(e) => setCustomStart(e.target.value)}
+                  className="w-1/2 p-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-pixel-lavender text-sm"
+                />
+                <input 
+                  type="date" 
+                  value={customEnd} 
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                  className="w-1/2 p-2 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-pixel-lavender text-sm"
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {loading && (
           <div className="text-center text-muted-foreground animate-pulse mt-10">
@@ -71,7 +138,6 @@ export default function EstadisticasPage() {
             <Card className="bg-surface border-none shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg">Weight Trend</CardTitle>
-                <p className="text-xs text-muted-foreground">Last 14 days</p>
               </CardHeader>
               <CardContent className="h-64 pt-4">
                 {data.weight.length > 0 ? (
@@ -86,7 +152,7 @@ export default function EstadisticasPage() {
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                       <XAxis dataKey="shortDate" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} dy={10} />
                       <YAxis 
-                        domain={[(min) => Math.floor(min) - 1, (max) => Math.ceil(max) + 1]} 
+                        domain={[(min: number) => Math.floor(min) - 1, (max: number) => Math.ceil(max) + 1]} 
                         allowDecimals={true} 
                         axisLine={false} 
                         tickLine={false} 
@@ -101,7 +167,7 @@ export default function EstadisticasPage() {
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No weight data</div>
+                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No weight data for selected period</div>
                 )}
               </CardContent>
             </Card>
@@ -134,7 +200,7 @@ export default function EstadisticasPage() {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No meal data</div>
+                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No meal data for selected period</div>
                 )}
               </CardContent>
             </Card>
@@ -166,7 +232,7 @@ export default function EstadisticasPage() {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No macro data</div>
+                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No macro data for selected period</div>
                 )}
               </CardContent>
             </Card>
@@ -178,7 +244,7 @@ export default function EstadisticasPage() {
                 <Card className="bg-surface border-none shadow-sm mt-6">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg">Caloric Statistics Chart</CardTitle>
-                    <p className="text-xs text-muted-foreground">Historical spread (Min, Avg, Max)</p>
+                    <p className="text-xs text-muted-foreground">Period spread (Min, Avg, Max)</p>
                   </CardHeader>
                   <CardContent className="h-64 pt-4">
                     <ResponsiveContainer width="100%" height="100%">
@@ -220,7 +286,7 @@ export default function EstadisticasPage() {
                 <Card className="bg-surface border-none shadow-sm mt-6">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg">Macro Statistics Chart</CardTitle>
-                    <p className="text-xs text-muted-foreground">Historical Avg and Median (g)</p>
+                    <p className="text-xs text-muted-foreground">Period Avg and Median (g)</p>
                   </CardHeader>
                   <CardContent className="h-64 pt-4">
                     <ResponsiveContainer width="100%" height="100%">
