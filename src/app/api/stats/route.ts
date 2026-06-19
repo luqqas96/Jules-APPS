@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    let foodQuery = supabase.from('food_logs').select('date, calories, protein, carbs, fats').eq('profile', profile);
+    let foodQuery = supabase.from('food_logs').select('date, meal_type, calories, protein, carbs, fats').eq('profile', profile);
     let weightQuery = supabase.from('weight_logs').select('date, weight').eq('profile', profile).order('date', { ascending: true });
 
     if (startDate) {
@@ -35,7 +35,10 @@ export async function GET(request: Request) {
     foodRes.data?.forEach(row => {
        const date = row.date;
        if (!macroData[date]) {
-          macroData[date] = { date, calories: 0, protein: 0, carbs: 0, fats: 0 };
+          macroData[date] = { date, calories: 0, protein: 0, carbs: 0, fats: 0, hasDinner: false };
+       }
+       if (row.meal_type === 'Cena') {
+          macroData[date].hasDinner = true;
        }
        macroData[date].calories += Number(row.calories) || 0;
        macroData[date].protein += Number(row.protein) || 0;
@@ -43,7 +46,16 @@ export async function GET(request: Request) {
        macroData[date].fats += Number(row.fats) || 0;
     });
 
-    const aggregatedMacros = Object.values(macroData).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    let aggregatedMacros = Object.values(macroData).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    // Si el último día no tiene "Cena", lo excluimos para que no afecte promedios ni muestre caídas en el gráfico
+    if (aggregatedMacros.length > 0) {
+        const lastDay = aggregatedMacros[aggregatedMacros.length - 1];
+        if (!lastDay.hasDinner) {
+            aggregatedMacros.pop();
+        }
+    }
+
     const sortedWeight = weightRes.data || [];
 
     // Calculate advanced stats

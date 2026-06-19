@@ -112,7 +112,7 @@ Instructions:
     };
 
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-3.5-flash',
       contents: [
         {
           role: 'user',
@@ -163,7 +163,7 @@ Instructions:
           }
 
           const secondResponse = await ai.models.generateContent({
-              model: 'gemini-1.5-flash',
+              model: 'gemini-3.5-flash',
               contents: [
                   { role: 'user', parts: [{ text: systemPrompt + "\n\nUser Latest Prompt: " + prompt + "\n\nFETCHED HISTORY DATA (JSON):\n" + fetchedHistory + "\n\nPlease analyze this data and answer the user's question." }] }
               ],
