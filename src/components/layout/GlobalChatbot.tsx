@@ -13,7 +13,7 @@ interface ChatMessage {
 }
 
 export function GlobalChatbot() {
-  const { dailyData, updateAllMeals, macroGoals, activeProfile, setWeightForDate } = useAppContext();
+  const { dailyData, updateAllMeals, macroGoals, activeProfile, setDailyWeight } = useAppContext();
   const [isOpen, setIsOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
@@ -86,8 +86,7 @@ export function GlobalChatbot() {
           updateAllMeals(sanitizedMeals);
           setMessages(prev => [...prev, { role: "assistant", text: data.message || "Meals updated successfully!" }]);
         } else if (data.action === "log_weight" && data.weight) {
-          const today = new Date().toISOString().split('T')[0];
-          await setWeightForDate(today, data.weight);
+          setDailyWeight(data.weight);
           setMessages(prev => [...prev, { role: "assistant", text: data.message }]);
         } else if (data.action === "chat" || data.action === "fetch_history") {
           setMessages(prev => [...prev, { role: "assistant", text: data.message }]);
