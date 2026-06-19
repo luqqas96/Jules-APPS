@@ -128,7 +128,7 @@ export function GlobalChatbot() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-x-0 bottom-0 z-50 sm:right-4 sm:left-auto sm:bottom-4 sm:w-96 sm:rounded-2xl sm:shadow-2xl bg-background border-t sm:border border-border flex flex-col h-[80vh] sm:h-[600px] overflow-hidden"
+            className="fixed inset-0 z-[100] sm:inset-auto sm:right-4 sm:bottom-4 sm:w-96 sm:rounded-2xl sm:shadow-2xl bg-background border-t sm:border border-border flex flex-col h-[100dvh] sm:h-[600px] overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 bg-surface border-b border-border shadow-sm">
@@ -188,7 +188,7 @@ export function GlobalChatbot() {
             </div>
 
             {/* Input Box */}
-            <div className="p-3 bg-surface border-t border-border">
+            <div className="p-3 pb-6 sm:pb-3 bg-surface border-t border-border">
               <div className="flex space-x-2">
                 <Input
                   className="bg-background border border-border shadow-sm flex-1 text-[15px] h-12 rounded-xl focus-visible:ring-pixel-mint"
