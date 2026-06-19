@@ -37,17 +37,18 @@ export async function POST(request: Request) {
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-    const systemPrompt = `You are a helpful nutrition and diet assistant.
+    const systemPrompt = `You are a helpful nutrition and diet assistant integrated globally in a tracking app.
 The user is talking to you via a chat interface.
-You must decide between TWO actions based on the user's latest prompt:
-1. "modify_meals": The user is explicitly asking to add a food entry to their daily meals. If you choose this, you MUST provide an array of \`new_foods\` to add, and a brief \`message\` confirming the action.
-2. "chat": The user is asking a question, seeking advice, or asking for food recommendations. If you choose this, you ONLY provide a \`message\` responding to them in a friendly, conversational manner. You do not return any food objects.
+You must decide between THREE actions based on the user's latest prompt:
+1. "modify_meals": The user is explicitly asking to add a food entry to their daily meals. Provide an array of \`new_foods\` to add, and a brief \`message\` confirming the action.
+2. "log_weight": The user is telling you their current weight (e.g., "Anota que peso 75kg", "Hoy peso 75.5"). You MUST extract the weight as a number and return it in the \`weight\` field, plus a confirming \`message\`.
+3. "chat": The user is asking a question, seeking advice, or asking for food recommendations. Provide a \`message\` responding to them in a friendly, conversational manner.
 
 CONTEXT INFORMATION:
 User Profile: ${profile || "Unknown"}
 Macro Goals: Calories: ${macroGoals.calories}, Protein: ${macroGoals.protein}g, Carbs: ${macroGoals.carbs}g, Fats: ${macroGoals.fats}g
-Current Daily Consumption: Calories: ${Math.round(currentTotals.calories)}, Protein: ${Math.round(currentTotals.protein)}g, Carbs: ${Math.round(currentTotals.carbs)}g, Fats: ${Math.round(currentTotals.fats)}g
-Remaining Calories: ${Math.round(macroGoals.calories - currentTotals.calories)}
+Current Daily Consumption: Calories: ${Math.round(currentTotals?.calories || 0)}, Protein: ${Math.round(currentTotals?.protein || 0)}g, Carbs: ${Math.round(currentTotals?.carbs || 0)}g, Fats: ${Math.round(currentTotals?.fats || 0)}g
+Remaining Calories: ${Math.round(macroGoals.calories - (currentTotals?.calories || 0))}
 
 User's Historically Consumed Foods:
 ${dictionaryContext}
@@ -62,8 +63,8 @@ Instructions:
 - If making a recommendation, USE their historical foods from the dictionary above to suggest things they actually eat.
 - Keep "chat" messages concise (1-3 short paragraphs).
 - If adding foods, calculate the macros accurately based on their request. Return the scaled \`macros\` and the \`baseMacros\` (per 100g or per unit base).
-- CRITICAL: If the user asks to add or log a food by units (e.g., "agregue 2 oreos"), you MUST estimate the weight in grams (e.g. 1 oreo = 11g) and calculate the macros. YOU MUST choose "modify_meals". Do not fall back to "chat" just because you are estimating.
-- IMPORTANT: For \`mealType\`, you MUST strictly map the user's request to one of these exact values: "Desayuno" (for breakfast), "Almuerzo" (for lunch), "Merienda" (for snack/afternoon tea), or "Cena" (for dinner).
+- CRITICAL: If the user asks to add or log a food by units (e.g., "agregue 2 oreos"), you MUST estimate the weight in grams (e.g. 1 oreo = 11g) and calculate the macros. YOU MUST choose "modify_meals".
+- IMPORTANT: For \`mealType\`, you MUST strictly map the user's request to one of these exact values: "Desayuno", "Almuerzo", "Merienda", or "Cena".
 - ALWAYS respond in the language the user speaks to you in (likely Spanish).`;
 
     const macroSchema: Schema = {
@@ -96,8 +97,9 @@ Instructions:
     const responseSchema: Schema = {
         type: Type.OBJECT,
         properties: {
-            action: { type: Type.STRING, enum: ["modify_meals", "chat", "fetch_history"] },
+            action: { type: Type.STRING, enum: ["modify_meals", "chat", "fetch_history", "log_weight"] },
             message: { type: Type.STRING, description: "The response message to the user." },
+            weight: { type: Type.NUMBER, description: "The weight in kg. Only provide if action is log_weight." },
             history_scope: { type: Type.STRING, enum: ["all", "specific_date"], description: "The scope of history to fetch. Only use if action is fetch_history." },
             history_date: { type: Type.STRING, description: "The specific date to fetch history for in YYYY-MM-DD format. Only use if action is fetch_history and scope is specific_date." },
             new_foods: {
@@ -110,7 +112,7 @@ Instructions:
     };
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite',
+      model: 'gemini-1.5-flash',
       contents: [
         {
           role: 'user',
@@ -161,7 +163,7 @@ Instructions:
           }
 
           const secondResponse = await ai.models.generateContent({
-              model: 'gemini-3.1-flash-lite',
+              model: 'gemini-1.5-flash',
               contents: [
                   { role: 'user', parts: [{ text: systemPrompt + "\n\nUser Latest Prompt: " + prompt + "\n\nFETCHED HISTORY DATA (JSON):\n" + fetchedHistory + "\n\nPlease analyze this data and answer the user's question." }] }
               ],
@@ -172,7 +174,7 @@ Instructions:
       }
 
       if (parsed.action === "modify_meals" && parsed.new_foods && Array.isArray(parsed.new_foods)) {
-          const updatedMeals = JSON.parse(JSON.stringify(currentMeals)); // Deep copy
+          const updatedMeals = JSON.parse(JSON.stringify(currentMeals || {})); // Deep copy
 
           parsed.new_foods.forEach((food: any) => {
              let targetMeal = food.mealType;
@@ -182,6 +184,8 @@ Instructions:
              else if (mLow.includes("snack") || mLow.includes("meriend")) targetMeal = "Merienda";
              else if (mLow.includes("dinner") || mLow.includes("cena")) targetMeal = "Cena";
              else targetMeal = "Merienda";
+
+             if (!updatedMeals[targetMeal]) updatedMeals[targetMeal] = [];
 
              if (updatedMeals[targetMeal]) {
                 updatedMeals[targetMeal].push({

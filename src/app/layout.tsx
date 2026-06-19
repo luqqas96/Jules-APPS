@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/contexts/AppContext";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { GlobalChatbot } from "@/components/layout/GlobalChatbot";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -41,6 +42,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <AppProvider>
           {children}
+          <GlobalChatbot />
           <BottomNav />
         </AppProvider>
       </body>
