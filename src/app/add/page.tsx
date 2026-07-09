@@ -84,7 +84,7 @@ function AddFoodForm() {
              const data = await res.json();
              if (res.ok) {
                 setResults(data);
-                setGrams("100");
+                setGrams(data.estimatedGrams ? String(data.estimatedGrams) : "100");
              } else {
                 alert(data.error || "Error al analizar imagen.");
              }
@@ -482,47 +482,139 @@ function AddFoodForm() {
       )}
 
       {results && !loading && (
-        <Card className="mt-8 bg-surface animate-in fade-in slide-in-from-bottom-4">
+        <Card className="mt-8 bg-surface animate-in fade-in slide-in-from-bottom-4 shadow-md border-border">
           <CardContent className="p-6">
-            <h3 className="font-semibold text-lg mb-4">{results.name}</h3>
-
-            <div className="mb-6 flex items-center space-x-3">
-              <label className="text-sm font-medium whitespace-nowrap">Amount (g):</label>
+            <div className="mb-4">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Nombre del Plato / Producto (Editable)</label>
               <Input
-                type="number"
-                step="0.1"
-                min="0"
-                value={grams}
-                onChange={(e) => setGrams(e.target.value)}
-                className="w-24 text-center"
+                value={results.name || ""}
+                onChange={(e) => setResults({ ...results, name: e.target.value })}
+                className="font-semibold text-md h-11 bg-background"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-pixel-mint-light p-3 rounded-2xl">
-                <p className="text-xs text-muted-foreground">Calories</p>
-                <p className="font-bold text-xl">{Math.round((results.macros?.calories || 0) * ((parseFloat(grams) || 0) / 100))} <span className="text-sm font-normal">kcal</span></p>
+            {(results as any).description && (
+              <div className="mb-4 p-3.5 bg-pixel-mint-light/40 border border-pixel-mint/30 rounded-2xl text-xs text-foreground/90 space-y-1.5 shadow-sm">
+                <div className="font-semibold text-pixel-mint flex items-center space-x-1 text-sm">
+                  <span>✨ Análisis Visual con IA</span>
+                </div>
+                <p className="leading-relaxed">{(results as any).description}</p>
+                {(results as any).estimatedGrams && (
+                  <div className="pt-1 flex items-center justify-between text-xs font-medium text-foreground">
+                    <span>Peso total detectado por IA: {(results as any).estimatedGrams}g</span>
+                    <button
+                      type="button"
+                      onClick={() => setGrams(String((results as any).estimatedGrams))}
+                      className="text-pixel-mint underline font-bold"
+                    >
+                      Usar porción detectada ({(results as any).estimatedGrams}g)
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="bg-pixel-peach-light p-3 rounded-2xl">
-                <p className="text-xs text-muted-foreground">Protein</p>
-                <p className="font-bold text-xl">{((results.macros?.protein || 0) * ((parseFloat(grams) || 0) / 100)).toFixed(1)} <span className="text-sm font-normal">g</span></p>
+            )}
+
+            <div className="mb-3">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Macros Base por 100g (Editable)</span>
+            </div>
+            <div className="grid grid-cols-4 gap-2 mb-5">
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground block text-center font-medium">Kcal/100g</label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={Math.round(results.macros?.calories ?? 0)}
+                  onChange={(e) => setResults({
+                    ...results,
+                    macros: { ...results.macros!, calories: parseFloat(e.target.value) || 0 }
+                  })}
+                  className="h-10 text-center font-bold text-sm bg-surface-secondary border-none"
+                />
               </div>
-              <div className="bg-pixel-blue-light p-3 rounded-2xl">
-                <p className="text-xs text-muted-foreground">Carbs</p>
-                <p className="font-bold text-xl">{((results.macros?.carbs || 0) * ((parseFloat(grams) || 0) / 100)).toFixed(1)} <span className="text-sm font-normal">g</span></p>
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground block text-center font-medium">Prot/100g</label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={results.macros?.protein ?? 0}
+                  onChange={(e) => setResults({
+                    ...results,
+                    macros: { ...results.macros!, protein: parseFloat(e.target.value) || 0 }
+                  })}
+                  className="h-10 text-center font-bold text-sm bg-surface-secondary border-none"
+                />
               </div>
-              <div className="bg-pixel-lavender-light p-3 rounded-2xl">
-                <p className="text-xs text-muted-foreground">Fats</p>
-                <p className="font-bold text-xl">{((results.macros?.fats || 0) * ((parseFloat(grams) || 0) / 100)).toFixed(1)} <span className="text-sm font-normal">g</span></p>
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground block text-center font-medium">Carb/100g</label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={results.macros?.carbs ?? 0}
+                  onChange={(e) => setResults({
+                    ...results,
+                    macros: { ...results.macros!, carbs: parseFloat(e.target.value) || 0 }
+                  })}
+                  className="h-10 text-center font-bold text-sm bg-surface-secondary border-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground block text-center font-medium">Grasa/100g</label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={results.macros?.fats ?? 0}
+                  onChange={(e) => setResults({
+                    ...results,
+                    macros: { ...results.macros!, fats: parseFloat(e.target.value) || 0 }
+                  })}
+                  className="h-10 text-center font-bold text-sm bg-surface-secondary border-none"
+                />
+              </div>
+            </div>
+
+            <div className="mb-4 flex items-center justify-between bg-surface-secondary p-3.5 rounded-2xl border border-border">
+              <label className="text-sm font-semibold text-foreground">Porción a registrar:</label>
+              <div className="flex items-center space-x-2">
+                <Input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={grams}
+                  onChange={(e) => setGrams(e.target.value)}
+                  className="w-24 text-center font-bold text-base h-10 bg-background shadow-sm"
+                />
+                <span className="text-sm font-bold text-foreground">g</span>
+              </div>
+            </div>
+
+            <div className="mb-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Calculado para {grams || 0}g</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="bg-pixel-mint-light p-3.5 rounded-2xl">
+                <p className="text-xs text-muted-foreground">Calorías Totales</p>
+                <p className="font-bold text-xl text-foreground">{Math.round((results.macros?.calories || 0) * ((parseFloat(grams) || 0) / 100))} <span className="text-sm font-normal">kcal</span></p>
+              </div>
+              <div className="bg-pixel-peach-light p-3.5 rounded-2xl">
+                <p className="text-xs text-muted-foreground">Proteína Total</p>
+                <p className="font-bold text-xl text-foreground">{((results.macros?.protein || 0) * ((parseFloat(grams) || 0) / 100)).toFixed(1)} <span className="text-sm font-normal">g</span></p>
+              </div>
+              <div className="bg-pixel-blue-light p-3.5 rounded-2xl">
+                <p className="text-xs text-muted-foreground">Carbohidratos Totales</p>
+                <p className="font-bold text-xl text-foreground">{((results.macros?.carbs || 0) * ((parseFloat(grams) || 0) / 100)).toFixed(1)} <span className="text-sm font-normal">g</span></p>
+              </div>
+              <div className="bg-pixel-lavender-light p-3.5 rounded-2xl">
+                <p className="text-xs text-muted-foreground">Grasas Totales</p>
+                <p className="font-bold text-xl text-foreground">{((results.macros?.fats || 0) * ((parseFloat(grams) || 0) / 100)).toFixed(1)} <span className="text-sm font-normal">g</span></p>
               </div>
             </div>
 
             <div className="space-y-3">
-              <Button className="w-full" size="lg" variant="mint" onClick={saveEntry}>
-                Add to {getMealName(meal)}
+              <Button className="w-full font-bold shadow-md" size="lg" variant="mint" onClick={saveEntry}>
+                Añadir a {getMealName(meal)}
               </Button>
               {lastScannedBarcode && (
-                <Button className="w-full bg-surface-secondary text-foreground hover:bg-surface border border-border" size="lg" variant="outline" onClick={() => {
+                <Button className="w-full bg-surface-secondary text-foreground hover:bg-surface border border-border text-xs" size="lg" variant="outline" onClick={() => {
                    const productName = window.prompt("Calcular con IA Manual.\n\nEscribe el nombre del producto:", lastScannedName || "");
                    if (productName && productName.trim() !== "") {
                       handleBarcodeFallback(productName.trim());

@@ -17,16 +17,20 @@ export async function POST(request: Request) {
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-    const systemPrompt = `Eres un experto en nutrición y reconocimiento de alimentos. El usuario ha tomado una fotografía de un alimento o comida. 
-Tu tarea es analizar la imagen y:
-1. Identificar de qué comida se trata.
-2. Estimar con la mayor precisión posible sus valores nutricionales por CADA 100 GRAMOS (o 100 ml).
+    const systemPrompt = `Eres un experto en nutrición y reconocimiento visual de alimentos. El usuario ha tomado una fotografía de un plato de comida o etiqueta.
+Tu tarea es analizar la imagen con máxima precisión y:
+1. Identificar el nombre específico del plato o producto en español (\`name\`).
+2. Estimar el peso total aproximado de la porción en el plato en gramos (\`estimatedGrams\`). Si no se puede determinar o es una etiqueta de producto, usa 100 como valor por defecto.
+3. Proporcionar una explicación clara y concisa de los ingredientes detectados, por qué estimas ese peso y desglose (\`description\`).
+4. Estimar sus valores nutricionales por CADA 100 GRAMOS o 100 ml (\`macros\`).
 Devuelve la respuesta ESTRICTAMENTE en formato JSON cumpliendo el esquema solicitado.`;
 
     const responseSchema: Schema = {
       type: Type.OBJECT,
       properties: {
         name: { type: Type.STRING, description: "El nombre detallado del producto o plato identificado en español." },
+        estimatedGrams: { type: Type.NUMBER, description: "Peso total estimado del plato o porción completa mostrada en gramos." },
+        description: { type: Type.STRING, description: "Explicación breve de los ingredientes identificados en la foto y justificación del cálculo nutricional." },
         macros: {
           type: Type.OBJECT,
           properties: {
@@ -42,11 +46,11 @@ Devuelve la respuesta ESTRICTAMENTE en formato JSON cumpliendo el esquema solici
           required: ["calories", "protein", "carbs", "fats"]
         }
       },
-      required: ["name", "macros"]
+      required: ["name", "estimatedGrams", "description", "macros"]
     };
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite',
+      model: 'gemini-3.5-flash',
       contents: [
         {
           role: 'user',

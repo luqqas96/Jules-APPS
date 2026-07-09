@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserProfile } from "@/types";
 
 import { DataExportCard } from "@/components/settings/DataExportCard";
+import { FoodDictionaryCard } from "@/components/settings/FoodDictionaryCard";
 
 export default function SettingsPage() {
   const { activeProfile, setProfile, macroGoals, setMacroGoals, isLoaded } = useAppContext();
@@ -116,6 +117,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      <FoodDictionaryCard />
       <DataExportCard />
 
       <Button className="w-full mt-4" size="lg" variant="mint" onClick={handleSave}>

@@ -19,6 +19,7 @@ interface AppContextType {
   setDailyWeight: (weight: number) => void;
   isLoaded: boolean;
   foodHistory: Omit<FoodEntry, "id" | "timestamp" | "grams" | "macros">[];
+  refreshFoodHistory: () => Promise<void>;
   weightHistory: { value: number; date: string }[];
   userStats: UserStats | null;
   setUserStats: (stats: UserStats) => void;
@@ -368,9 +369,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     supabase.from('food_logs').delete().eq('profile', activeProfile).eq('date', getTodayString()).then();
   };
 
+  const refreshFoodHistory = async () => {
+    const historyRes = await supabase.from('food_history').select('*').eq('profile', activeProfile).order('updated_at', { ascending: false });
+    if (historyRes.data) {
+      setFoodHistoryState(historyRes.data.map((r: any) => ({ name: r.name, baseMacros: r.base_macros })));
+    }
+  };
+
   return (
     <AppContext.Provider value={{
-      activeProfile, setProfile, macroGoals, setMacroGoals, dailyData, addEntry, removeEntry, moveEntry, updateEntry, updateAllMeals, clearDay, isLoaded, foodHistory, setDailyWeight, weightHistory, userStats, setUserStats
+      activeProfile, setProfile, macroGoals, setMacroGoals, dailyData, addEntry, removeEntry, moveEntry, updateEntry, updateAllMeals, clearDay, isLoaded, foodHistory, refreshFoodHistory, setDailyWeight, weightHistory, userStats, setUserStats
     }}>
       {children}
     </AppContext.Provider>

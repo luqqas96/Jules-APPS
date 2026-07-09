@@ -4,10 +4,10 @@ import { supabase } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   try {
-    const { prompt, chatHistory, currentMeals, currentTotals, macroGoals, profile } = await request.json();
+    const { prompt, chatHistory, currentMeals, currentTotals, macroGoals, profile, image, audio } = await request.json();
 
-    if (!prompt) {
-      return NextResponse.json({ error: 'Falta el prompt del usuario' }, { status: 400 });
+    if (!prompt && !image && !audio) {
+      return NextResponse.json({ error: 'Falta el prompt, imagen o audio del usuario' }, { status: 400 });
     }
 
     if (!process.env.GEMINI_API_KEY) {
@@ -38,11 +38,12 @@ export async function POST(request: Request) {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
     const systemPrompt = `You are a helpful nutrition and diet assistant integrated globally in a tracking app.
-The user is talking to you via a chat interface.
-You must decide between THREE actions based on the user's latest prompt:
-1. "modify_meals": The user is explicitly asking to add a food entry to their daily meals. Provide an array of \`new_foods\` to add, and a brief \`message\` confirming the action.
-2. "log_weight": The user is telling you their current weight (e.g., "Anota que peso 75kg", "Hoy peso 75.5"). You MUST extract the weight as a number and return it in the \`weight\` field, plus a confirming \`message\`.
-3. "chat": The user is asking a question, seeking advice, or asking for food recommendations. Provide a \`message\` responding to them in a friendly, conversational manner.
+The user is talking to you via a chat interface and may send text, photos of food (like a plate, omelette, etc.), or voice notes (audio).
+You must decide between FOUR actions based on the user's latest prompt, image, or audio:
+1. "propose_meal": The user wants to add or log a food entry, OR has sent a photo/voice recording of food they ate. You MUST NOT save it automatically. Instead, propose the meal by providing an array of \`proposed_foods\`, a detailed \`analysis_description\` (explaining what ingredients/macros you detected from the image/audio or text), and a conversational \`message\` asking them to confirm/approve the proposal.
+2. "modify_meals": (Only use if user explicitly says they already approved via system command, otherwise ALWAYS prefer "propose_meal" for any new food addition).
+3. "log_weight": The user is telling you their current weight (e.g., "Anota que peso 75kg", "Hoy peso 75.5"). You MUST extract the weight as a number and return it in the \`weight\` field, plus a confirming \`message\`.
+4. "chat": The user is asking a general question, seeking advice, or asking for food recommendations without adding food right now. Provide a \`message\` responding to them in a friendly, conversational manner.
 
 CONTEXT INFORMATION:
 User Profile: ${profile || "Unknown"}
@@ -57,15 +58,15 @@ Current Daily Meals JSON:
 ${JSON.stringify(currentMeals, null, 2)}
 
 Chat History:
-${JSON.stringify(chatHistory.slice(-5), null, 2)}
+${JSON.stringify((chatHistory || []).slice(-5), null, 2)}
 
 Instructions:
 - If making a recommendation, USE their historical foods from the dictionary above to suggest things they actually eat.
-- Keep "chat" messages concise (1-3 short paragraphs).
-- If adding foods, calculate the macros accurately based on their request. Return the scaled \`macros\` and the \`baseMacros\` (per 100g or per unit base).
-- CRITICAL: If the user asks to add or log a food by units (e.g., "agregue 2 oreos"), you MUST estimate the weight in grams (e.g. 1 oreo = 11g) and calculate the macros. YOU MUST choose "modify_meals".
-- IMPORTANT: For \`mealType\`, you MUST strictly map the user's request to one of these exact values: "Desayuno", "Almuerzo", "Merienda", or "Cena".
-- ALWAYS respond in the language the user speaks to you in (likely Spanish).`;
+- Keep messages concise and clear.
+- When action is "propose_meal", accurately calculate the macros (\`macros\` scaled to grams, plus \`baseMacros\` per 100g or unit base) for each proposed food item. Include \`analysis_description\` detailing why/how you estimated those numbers or what ingredients you identified in the photo/audio.
+- CRITICAL: If the user asks to add or log a food, OR sends a food image/audio, choose "propose_meal".
+- IMPORTANT: For \`mealType\`, strictly choose one of these exact values: "Desayuno", "Almuerzo", "Merienda", or "Cena". If ambiguous, infer based on current time or suggest "Cena"/"Almuerzo".
+- ALWAYS respond in the language the user speaks or communicates to you in (likely Spanish).`;
 
     const macroSchema: Schema = {
       type: Type.OBJECT,
@@ -97,28 +98,46 @@ Instructions:
     const responseSchema: Schema = {
         type: Type.OBJECT,
         properties: {
-            action: { type: Type.STRING, enum: ["modify_meals", "chat", "fetch_history", "log_weight"] },
+            action: { type: Type.STRING, enum: ["propose_meal", "modify_meals", "chat", "fetch_history", "log_weight"] },
             message: { type: Type.STRING, description: "The response message to the user." },
+            analysis_description: { type: Type.STRING, description: "Detailed breakdown of detected ingredients, weight estimation rationale, or analysis of the photo/audio." },
             weight: { type: Type.NUMBER, description: "The weight in kg. Only provide if action is log_weight." },
             history_scope: { type: Type.STRING, enum: ["all", "specific_date"], description: "The scope of history to fetch. Only use if action is fetch_history." },
             history_date: { type: Type.STRING, description: "The specific date to fetch history for in YYYY-MM-DD format. Only use if action is fetch_history and scope is specific_date." },
             new_foods: {
                 type: Type.ARRAY,
                 items: newFoodSchema,
-                description: "Array of food items to ADD to the user's meals. Only provide this if action is modify_meals."
+                description: "Array of food items to ADD directly. Only use if action is modify_meals."
+            },
+            proposed_foods: {
+                type: Type.ARRAY,
+                items: newFoodSchema,
+                description: "Array of proposed food items for the user to verify and approve. Use when action is propose_meal."
             }
         },
         required: ["action", "message"]
     };
+
+    const userParts: any[] = [];
+    if (prompt) {
+      userParts.push({ text: systemPrompt + "\n\nUser Latest Prompt: " + prompt });
+    } else {
+      userParts.push({ text: systemPrompt + "\n\nUser sent multimedia (image or audio) with no extra text prompt. Please analyze and respond or propose meal." });
+    }
+
+    if (image && image.data) {
+      userParts.push({ inlineData: { data: image.data, mimeType: image.mimeType || 'image/jpeg' } });
+    }
+    if (audio && audio.data) {
+      userParts.push({ inlineData: { data: audio.data, mimeType: audio.mimeType || 'audio/webm' } });
+    }
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.5-flash',
       contents: [
         {
           role: 'user',
-          parts: [
-            { text: systemPrompt + "\n\nUser Latest Prompt: " + prompt }
-          ]
+          parts: userParts
         }
       ],
       config: {
@@ -173,37 +192,53 @@ Instructions:
           return NextResponse.json(secondParsed);
       }
 
-      if (parsed.action === "modify_meals" && parsed.new_foods && Array.isArray(parsed.new_foods)) {
-          const updatedMeals = JSON.parse(JSON.stringify(currentMeals || {})); // Deep copy
-
-          parsed.new_foods.forEach((food: any) => {
+      // Handle propose_meal or normalize modify_meals into propose_meal if desired, or keep both
+      if (parsed.action === "propose_meal" || (parsed.action === "modify_meals" && parsed.proposed_foods)) {
+          const foods = parsed.proposed_foods || parsed.new_foods || [];
+          const normalizedFoods = foods.map((food: any) => {
              let targetMeal = food.mealType;
-             const mLow = targetMeal.toLowerCase();
+             const mLow = (targetMeal || "").toLowerCase();
              if (mLow.includes("break") || mLow.includes("desay")) targetMeal = "Desayuno";
              else if (mLow.includes("lunch") || mLow.includes("almuerz")) targetMeal = "Almuerzo";
              else if (mLow.includes("snack") || mLow.includes("meriend")) targetMeal = "Merienda";
              else if (mLow.includes("dinner") || mLow.includes("cena")) targetMeal = "Cena";
-             else targetMeal = "Merienda";
+             else targetMeal = "Desayuno";
 
-             if (!updatedMeals[targetMeal]) updatedMeals[targetMeal] = [];
-
-             if (updatedMeals[targetMeal]) {
-                updatedMeals[targetMeal].push({
-                   id: Math.random().toString(36).substring(2, 9),
-                   name: food.name || "Unknown Food",
-                   grams: food.grams || 100,
-                   timestamp: Date.now(),
-                   macros: food.macros || { calories: 0, protein: 0, carbs: 0, fats: 0, cholesterol: 0, sodium: 0, sugar: 0, calcium: 0 },
-                   baseMacros: food.baseMacros || food.macros || { calories: 0, protein: 0, carbs: 0, fats: 0, cholesterol: 0, sodium: 0, sugar: 0, calcium: 0 }
-                });
-             }
+             return {
+                 id: Math.random().toString(36).substring(2, 9),
+                 mealType: targetMeal,
+                 name: food.name || "Alimento Identificado",
+                 grams: food.grams || 100,
+                 macros: food.macros || { calories: 0, protein: 0, carbs: 0, fats: 0, cholesterol: 0, sodium: 0, sugar: 0, calcium: 0 },
+                 baseMacros: food.baseMacros || food.macros || { calories: 0, protein: 0, carbs: 0, fats: 0, cholesterol: 0, sodium: 0, sugar: 0, calcium: 0 }
+             };
           });
+          parsed.action = "propose_meal";
+          parsed.proposed_foods = normalizedFoods;
+      } else if (parsed.action === "modify_meals" && parsed.new_foods && Array.isArray(parsed.new_foods)) {
+          // If Gemini still returned modify_meals directly, normalize to propose_meal for safety when adding new food
+          const foods = parsed.new_foods;
+          const normalizedFoods = foods.map((food: any) => {
+             let targetMeal = food.mealType;
+             const mLow = (targetMeal || "").toLowerCase();
+             if (mLow.includes("break") || mLow.includes("desay")) targetMeal = "Desayuno";
+             else if (mLow.includes("lunch") || mLow.includes("almuerz")) targetMeal = "Almuerzo";
+             else if (mLow.includes("snack") || mLow.includes("meriend")) targetMeal = "Merienda";
+             else if (mLow.includes("dinner") || mLow.includes("cena")) targetMeal = "Cena";
+             else targetMeal = "Desayuno";
 
-          parsed.meals = updatedMeals;
-          delete parsed.new_foods; 
-      } else if (parsed.action === "modify_meals") {
-          parsed.action = "chat";
-          parsed.message = parsed.message || "I couldn't modify the meals properly.";
+             return {
+                 id: Math.random().toString(36).substring(2, 9),
+                 mealType: targetMeal,
+                 name: food.name || "Alimento Identificado",
+                 grams: food.grams || 100,
+                 macros: food.macros || { calories: 0, protein: 0, carbs: 0, fats: 0, cholesterol: 0, sodium: 0, sugar: 0, calcium: 0 },
+                 baseMacros: food.baseMacros || food.macros || { calories: 0, protein: 0, carbs: 0, fats: 0, cholesterol: 0, sodium: 0, sugar: 0, calcium: 0 }
+             };
+          });
+          parsed.action = "propose_meal";
+          parsed.proposed_foods = normalizedFoods;
+          delete parsed.new_foods;
       }
 
       return NextResponse.json(parsed);
