@@ -31,15 +31,87 @@ export function GlobalChatbot() {
   const [selectedImage, setSelectedImage] = useState<{ data: string; mimeType: string; previewUrl: string } | null>(null);
   const [selectedAudio, setSelectedAudio] = useState<{ data: string; mimeType: string; previewUrl: string } | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [showCameraMenu, setShowCameraMenu] = useState(false);
+  const [showLiveCamera, setShowLiveCamera] = useState(false);
+  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, loading, isOpen, selectedImage, selectedAudio]);
+
+  useEffect(() => {
+    if (!isOpen && showLiveCamera) {
+      stopLiveCamera();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (showLiveCamera) {
+      startLiveCamera(facingMode);
+    }
+  }, [facingMode, showLiveCamera]);
+
+  const startLiveCamera = async (mode: "environment" | "user") => {
+    try {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const currentStream = videoRef.current.srcObject as MediaStream;
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+      setShowLiveCamera(true);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: mode }
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      alert("No se pudo iniciar la cámara en vivo. Abriendo cámara del dispositivo...");
+      setShowLiveCamera(false);
+      cameraInputRef.current?.click();
+    }
+  };
+
+  const stopLiveCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setShowLiveCamera(false);
+  };
+
+  const capturePhoto = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    const width = video.videoWidth || 640;
+    const height = video.videoHeight || 480;
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, width, height);
+      const base64Url = canvas.toDataURL("image/jpeg", 0.85);
+      const base64 = base64Url.split(",")[1];
+      setSelectedImage({
+        data: base64,
+        mimeType: "image/jpeg",
+        previewUrl: base64Url
+      });
+      stopLiveCamera();
+    }
+  };
 
   const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -51,6 +123,7 @@ export function GlobalChatbot() {
        setSelectedImage({ data: base64, mimeType: file.type || 'image/jpeg', previewUrl: base64Url });
     };
     reader.readAsDataURL(file);
+    e.target.value = "";
   };
 
   const startRecording = async () => {
@@ -242,6 +315,58 @@ export function GlobalChatbot() {
               </button>
             </div>
 
+            {/* Live Camera View inside Chat Overlay */}
+            {showLiveCamera && (
+              <div className="absolute inset-0 z-50 bg-black/95 flex flex-col justify-between p-4 text-white animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sm flex items-center gap-1.5">
+                    <CameraIcon className="w-5 h-5 text-pixel-mint" />
+                    Tomar Foto al Plato
+                  </span>
+                  <button
+                    type="button"
+                    onClick={stopLiveCamera}
+                    className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+                  >
+                    <XMarkIcon className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="relative flex-1 my-4 flex items-center justify-center overflow-hidden rounded-2xl bg-black border border-white/10 shadow-inner">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-contain"
+                  />
+                  <canvas ref={canvasRef} className="hidden" />
+                </div>
+
+                <div className="flex items-center justify-around pb-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFacingMode(prev => prev === "environment" ? "user" : "environment");
+                    }}
+                    className="p-3 bg-white/10 rounded-full hover:bg-white/20 text-xs flex flex-col items-center gap-1 transition-colors"
+                  >
+                    <span>🔄 Girar</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={capturePhoto}
+                    className="w-16 h-16 rounded-full border-4 border-white bg-pixel-mint shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-white/20" />
+                  </button>
+
+                  <div className="w-12" />
+                </div>
+              </div>
+            )}
+
             {/* Chat History */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-background scrollbar-thin pb-4">
               {messages.length === 0 ? (
@@ -383,8 +508,63 @@ export function GlobalChatbot() {
             )}
 
             {/* Input Box */}
-            <div className="p-3 pb-6 sm:pb-3 bg-surface border-t border-border">
+            <div className="p-3 pb-6 sm:pb-3 bg-surface border-t border-border relative">
+              {/* Camera Menu Popover */}
+              <AnimatePresence>
+                {showCameraMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute bottom-16 left-3 z-50 bg-surface border border-border shadow-xl rounded-2xl p-2 w-64 space-y-1"
+                  >
+                    <div className="text-[11px] font-semibold text-muted-foreground px-2.5 py-1.5 uppercase tracking-wider">
+                      Opciones de Cámara / Foto
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCameraMenu(false);
+                        startLiveCamera(facingMode);
+                      }}
+                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-medium text-foreground hover:bg-pixel-mint-light hover:text-pixel-mint flex items-center space-x-2.5 transition-colors"
+                    >
+                      <CameraIcon className="w-4 h-4 text-pixel-mint" />
+                      <span>📸 Tomar Foto (Cámara en vivo)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCameraMenu(false);
+                        cameraInputRef.current?.click();
+                      }}
+                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-medium text-foreground hover:bg-surface-secondary flex items-center space-x-2.5 transition-colors"
+                    >
+                      <span>📱 Cámara nativa del móvil</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCameraMenu(false);
+                        fileInputRef.current?.click();
+                      }}
+                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-medium text-foreground hover:bg-surface-secondary flex items-center space-x-2.5 transition-colors"
+                    >
+                      <span>🖼️ Subir desde Galería</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div className="flex items-center space-x-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  ref={cameraInputRef}
+                  onChange={handleImagePick}
+                  className="hidden"
+                />
                 <input
                   type="file"
                   accept="image/*"
@@ -394,10 +574,10 @@ export function GlobalChatbot() {
                 />
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => setShowCameraMenu(prev => !prev)}
                   disabled={loading}
-                  title="Subir foto del plato"
-                  className="p-2.5 rounded-xl text-muted-foreground hover:text-pixel-mint hover:bg-pixel-mint-light/50 transition-colors"
+                  title="Opciones de cámara y foto"
+                  className={`p-2.5 rounded-xl transition-colors ${showCameraMenu ? "bg-pixel-mint text-white" : "text-muted-foreground hover:text-pixel-mint hover:bg-pixel-mint-light/50"}`}
                 >
                   <CameraIcon className="w-6 h-6" />
                 </button>
