@@ -519,28 +519,25 @@ export function GlobalChatbot() {
                     className="absolute bottom-16 left-3 z-50 bg-surface border border-border shadow-xl rounded-2xl p-2 w-64 space-y-1"
                   >
                     <div className="text-[11px] font-semibold text-muted-foreground px-2.5 py-1.5 uppercase tracking-wider">
-                      Opciones de Cámara / Foto
+                      Opciones de Foto
                     </div>
                     <button
                       type="button"
                       onClick={() => {
                         setShowCameraMenu(false);
-                        startLiveCamera(facingMode);
+                        // En dispositivos móviles como el Google Pixel 10, abrimos la cámara nativa de alta calidad (HDR+, flash, enfoque nativo) via capture="environment".
+                        // En PC escritorio (o sin móvil detectado), abrimos el visor de cámara en vivo o el explorador.
+                        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || "");
+                        if (isMobile) {
+                          cameraInputRef.current?.click();
+                        } else {
+                          startLiveCamera(facingMode);
+                        }
                       }}
                       className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-medium text-foreground hover:bg-pixel-mint-light hover:text-pixel-mint flex items-center space-x-2.5 transition-colors"
                     >
                       <CameraIcon className="w-4 h-4 text-pixel-mint" />
-                      <span>📸 Tomar Foto (Cámara en vivo)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowCameraMenu(false);
-                        cameraInputRef.current?.click();
-                      }}
-                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-medium text-foreground hover:bg-surface-secondary flex items-center space-x-2.5 transition-colors"
-                    >
-                      <span>📱 Cámara nativa del móvil</span>
+                      <span>📸 Tomar Foto (Cámara)</span>
                     </button>
                     <button
                       type="button"
