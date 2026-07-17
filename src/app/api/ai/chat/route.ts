@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import { supabase } from '@/lib/supabase';
 
+export const maxDuration = 60; // Evitar error 504 Gateway Timeout de Vercel para llamadas de IA con multimedia
+
 export async function POST(request: Request) {
   try {
     const { prompt, chatHistory, currentMeals, currentTotals, macroGoals, profile, image, audio } = await request.json();
@@ -26,7 +28,7 @@ export async function POST(request: Request) {
 
        if (!error && dictRows && dictRows.length > 0) {
            const items = dictRows.map(row => {
-               const macros = row.base_macros as any;
+               const macros = (typeof row.base_macros === 'string' ? JSON.parse(row.base_macros || '{}') : row.base_macros) || {};
                return `- ${row.name} (${macros.calories || 0}kcal per 100g)`;
            });
            dictionaryContext = items.join("\n");
@@ -47,9 +49,9 @@ You must decide between FOUR actions based on the user's latest prompt, image, o
 
 CONTEXT INFORMATION:
 User Profile: ${profile || "Unknown"}
-Macro Goals: Calories: ${macroGoals.calories}, Protein: ${macroGoals.protein}g, Carbs: ${macroGoals.carbs}g, Fats: ${macroGoals.fats}g
+Macro Goals: Calories: ${macroGoals?.calories || 2000}, Protein: ${macroGoals?.protein || 150}g, Carbs: ${macroGoals?.carbs || 200}g, Fats: ${macroGoals?.fats || 65}g
 Current Daily Consumption: Calories: ${Math.round(currentTotals?.calories || 0)}, Protein: ${Math.round(currentTotals?.protein || 0)}g, Carbs: ${Math.round(currentTotals?.carbs || 0)}g, Fats: ${Math.round(currentTotals?.fats || 0)}g
-Remaining Calories: ${Math.round(macroGoals.calories - (currentTotals?.calories || 0))}
+Remaining Calories: ${Math.round((macroGoals?.calories || 2000) - (currentTotals?.calories || 0))}
 
 User's Historically Consumed Foods:
 ${dictionaryContext}
