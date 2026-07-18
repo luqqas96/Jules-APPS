@@ -246,6 +246,9 @@ export function GlobalChatbot() {
     setSelectedAudio(null);
     setLoading(true);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s de timeout
+
     try {
       // Calculate current totals
       const currentTotals = { calories: 0, protein: 0, carbs: 0, fats: 0 };
@@ -273,8 +276,11 @@ export function GlobalChatbot() {
           image: currentImg ? { data: currentImg.data, mimeType: currentImg.mimeType } : undefined,
           audio: currentAud ? { data: currentAud.data, mimeType: currentAud.mimeType } : undefined,
           todayDate: new Date().toLocaleDateString("en-CA"),
-        })
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       const data = await res.json();
       console.log("CLIENT RECEIVED AI DATA:", data);
@@ -319,8 +325,13 @@ export function GlobalChatbot() {
       } else {
         setMessages(prev => [...prev, { role: "assistant", text: `Error: ${data.error}` }]);
       }
-    } catch (error) {
-      setMessages(prev => [...prev, { role: "assistant", text: "Error de conexión con el asistente." }]);
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === "AbortError") {
+         setMessages(prev => [...prev, { role: "assistant", text: "El asistente está tardando más de lo habitual en responder. Por favor, reintenta tu mensaje." }]);
+      } else {
+         setMessages(prev => [...prev, { role: "assistant", text: "Error de conexión con el asistente." }]);
+      }
     } finally {
       setLoading(false);
     }
