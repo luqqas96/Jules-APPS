@@ -17,7 +17,6 @@ interface ChatMessage {
   proposed_foods?: any[];
   analysis_description?: string;
   approved?: boolean;
-  target_date?: string;
 }
 
 export function GlobalChatbot() {
@@ -217,8 +216,7 @@ export function GlobalChatbot() {
               role: "assistant",
               text: data.message || "He analizado tu solicitud. Por favor revisa y aprueba el alimento propuesto:",
               proposed_foods: data.proposed_foods,
-              analysis_description: data.analysis_description,
-              target_date: data.target_date
+              analysis_description: data.analysis_description
            }]);
         } else if (data.action === "modify_meals" && data.meals) {
           const sanitizeEntries = (entries: any[]) => {
@@ -259,53 +257,17 @@ export function GlobalChatbot() {
     }
   };
 
-  const handleApproveProposal = async (idx: number, foods: any[], targetDate?: string) => {
-    const getTodayStringLocal = () => {
-      const d = new Date();
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
-
-    const todayStr = getTodayStringLocal();
-    const date = targetDate || todayStr;
-    const isToday = date === todayStr;
-
+  const handleApproveProposal = async (idx: number, foods: any[]) => {
+    // El asistente solo registra comidas del día actual. Para editar días pasados
+    // se usa la pantalla de Historial.
     for (const food of foods) {
        const mealType: MealType = food.mealType || "Cena";
-       const entryData = {
+       addEntry(mealType, {
           name: food.name,
           grams: food.grams || 100,
           macros: food.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 },
           baseMacros: food.baseMacros || food.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 }
-       };
-
-       if (isToday) {
-          addEntry(mealType, entryData);
-       } else {
-          try {
-             const { supabase } = await import("@/lib/supabase");
-             await supabase.from('food_logs').insert({
-                profile: activeProfile,
-                date: date,
-                time: new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", hour12: false }),
-                meal_type: mealType,
-                product_name: entryData.name,
-                amount: entryData.grams,
-                calories: entryData.macros.calories || 0,
-                protein: entryData.macros.protein || 0,
-                carbs: entryData.macros.carbs || 0,
-                fats: entryData.macros.fats || 0,
-                cholesterol: food.macros?.cholesterol || 0,
-                sodium: food.macros?.sodium || 0,
-                sugar: food.macros?.sugar || 0,
-                calcium: food.macros?.calcium || 0
-             });
-          } catch (err) {
-             console.error("Error inserting historical food log:", err);
-          }
-       }
+       });
     }
     setMessages(prev => prev.map((m, i) => i === idx ? { ...m, approved: true } : m));
   };
@@ -488,7 +450,7 @@ export function GlobalChatbot() {
                               variant="mint"
                               size="sm"
                               className="flex-1 text-xs py-2 shadow-sm font-semibold"
-                              onClick={() => handleApproveProposal(idx, msg.proposed_foods || [], msg.target_date)}
+                              onClick={() => handleApproveProposal(idx, msg.proposed_foods || [])}
                             >
                               ✅ Aprobar y Registrar
                             </Button>

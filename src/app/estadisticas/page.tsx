@@ -79,7 +79,7 @@ export default function EstadisticasPage() {
   return (
     <main className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md px-4 py-4 border-b border-border/50">
-        <h1 className="text-xl font-bold text-foreground">Statistics</h1>
+        <h1 className="text-xl font-bold text-foreground">Estadísticas</h1>
       </header>
 
       <div className="p-4 max-w-md mx-auto mt-4 space-y-6">
@@ -137,7 +137,7 @@ export default function EstadisticasPage() {
             {/* Gráfico de Weight */}
             <Card className="bg-surface border-none shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Weight Trend</CardTitle>
+                <CardTitle className="text-lg">Evolución del peso</CardTitle>
               </CardHeader>
               <CardContent className="h-64 pt-4">
                 {data.weight.length > 0 ? (
@@ -167,7 +167,7 @@ export default function EstadisticasPage() {
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No weight data for selected period</div>
+                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm">Sin datos de peso en este período</div>
                 )}
               </CardContent>
             </Card>
@@ -175,8 +175,8 @@ export default function EstadisticasPage() {
             {/* Gráfico de Calorías */}
             <Card className="bg-surface border-none shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Calories Consumed</CardTitle>
-                <p className="text-xs text-muted-foreground">Goal: {macroGoals.calories} kcal</p>
+                <CardTitle className="text-lg">Calorías consumidas</CardTitle>
+                <p className="text-xs text-muted-foreground">Meta: {macroGoals.calories} kcal</p>
               </CardHeader>
               <CardContent className="h-64 pt-4">
                 {data.macros.length > 0 ? (
@@ -187,7 +187,7 @@ export default function EstadisticasPage() {
                       <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
                       <Tooltip
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                        formatter={(value: any) => [`${Math.round(value)} kcal`, 'Calories']}
+                        formatter={(value: any) => [`${Math.round(value)} kcal`, 'Calorías']}
                         cursor={{ fill: '#f3f4f6' }}
                       />
                       <Bar dataKey="calories" fill="#fdba74" radius={[4, 4, 0, 0]} />
@@ -220,15 +220,15 @@ export default function EstadisticasPage() {
                       <Tooltip
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                         formatter={(value: any, name: any) => {
-                          const labels: Record<string, string> = { protein: 'Protein', carbs: 'Carbs', fats: 'Fats' };
+                          const labels: Record<string, string> = { protein: 'Proteína', carbs: 'Carbohidratos', fats: 'Grasas' };
                           return [`${Math.round(value)}g`, labels[name] || name];
                         }}
                         cursor={{ fill: '#f3f4f6' }}
                       />
                       <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                      <Bar dataKey="protein" name="Protein" stackId="a" fill="#fca5a5" />
-                      <Bar dataKey="carbs" name="Carbs" stackId="a" fill="#93c5fd" />
-                      <Bar dataKey="fats" name="Fats" stackId="a" fill="#d8b4fe" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="protein" name="Proteína" stackId="a" fill="#0f9d6b" />
+                      <Bar dataKey="carbs" name="Carbohidratos" stackId="a" fill="#dd8a3c" />
+                      <Bar dataKey="fats" name="Grasas" stackId="a" fill="#7b6bcf" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -243,7 +243,7 @@ export default function EstadisticasPage() {
               <>
                 <Card className="bg-surface border-none shadow-sm mt-6">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">Caloric Statistics Chart</CardTitle>
+                    <CardTitle className="text-lg">Estadística de calorías</CardTitle>
                     <p className="text-xs text-muted-foreground">Period spread (Min, Avg, Max)</p>
                   </CardHeader>
                   <CardContent className="h-64 pt-4">
@@ -262,7 +262,7 @@ export default function EstadisticasPage() {
                         <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
                         <Tooltip
                           contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                          formatter={(value: any) => [`${Math.round(value)} kcal`, 'Calories']}
+                          formatter={(value: any) => [`${Math.round(value)} kcal`, 'Calorías']}
                           cursor={{ fill: '#f3f4f6' }}
                         />
                         <Bar dataKey="value" radius={[4, 4, 0, 0]}>
@@ -285,16 +285,16 @@ export default function EstadisticasPage() {
                 {/* Macro Statistics Chart */}
                 <Card className="bg-surface border-none shadow-sm mt-6">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">Macro Statistics Chart</CardTitle>
+                    <CardTitle className="text-lg">Estadística de macros</CardTitle>
                     <p className="text-xs text-muted-foreground">Period Avg and Median (g)</p>
                   </CardHeader>
                   <CardContent className="h-64 pt-4">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={[
-                          { name: 'Protein', Min: data.advancedStats.protein.min, Avg: data.advancedStats.protein.avg, Median: data.advancedStats.protein.median, Max: data.advancedStats.protein.max },
-                          { name: 'Carbs', Min: data.advancedStats.carbs.min, Avg: data.advancedStats.carbs.avg, Median: data.advancedStats.carbs.median, Max: data.advancedStats.carbs.max },
-                          { name: 'Fats', Min: data.advancedStats.fats.min, Avg: data.advancedStats.fats.avg, Median: data.advancedStats.fats.median, Max: data.advancedStats.fats.max }
+                          { name: 'Proteína', Min: data.advancedStats.protein.min, Avg: data.advancedStats.protein.avg, Median: data.advancedStats.protein.median, Max: data.advancedStats.protein.max },
+                          { name: 'Carbohidratos', Min: data.advancedStats.carbs.min, Avg: data.advancedStats.carbs.avg, Median: data.advancedStats.carbs.median, Max: data.advancedStats.carbs.max },
+                          { name: 'Grasas', Min: data.advancedStats.fats.min, Avg: data.advancedStats.fats.avg, Median: data.advancedStats.fats.median, Max: data.advancedStats.fats.max }
                         ]}
                         margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
                       >
@@ -321,11 +321,11 @@ export default function EstadisticasPage() {
                   <CardContent className="pt-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-pixel-mint-light/50 p-3 rounded-xl">
-                        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Std Deviation</p>
+                        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Desvío estándar</p>
                         <p className="text-lg font-bold">±{data.advancedStats.stdDev} <span className="text-xs font-normal">kcal</span></p>
                       </div>
                       <div className="bg-pixel-lavender-light/50 p-3 rounded-xl">
-                        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Caloric Range</p>
+                        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Rango calórico</p>
                         <p className="text-sm font-bold mt-1">{data.advancedStats.minCals} - {data.advancedStats.maxCals} <span className="text-xs font-normal">kcal</span></p>
                       </div>
                     </div>

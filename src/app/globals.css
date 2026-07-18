@@ -1,24 +1,29 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
 :root {
-  /* Pixel 10 Pastel Theme */
-  --pixel-mint: #C8E6C9;
-  --pixel-mint-light: #E8F5E9;
-  --pixel-peach: #FFCCBC;
-  --pixel-peach-light: #FBE9E7;
-  --pixel-lavender: #D1C4E9;
-  --pixel-lavender-light: #EDE7F6;
-  --pixel-blue: #B3E5FC;
-  --pixel-blue-light: #E1F5FE;
+  /* ===== Verde Sereno — Light ===== */
+  /* Acento primario (esmeralda / salud) */
+  --pixel-mint: #0f9d6b;
+  --pixel-mint-light: #e6f5ee;
+  /* Carbohidratos / cálido (miel) */
+  --pixel-peach: #dd8a3c;
+  --pixel-peach-light: #fbf0e2;
+  /* Grasas / descanso (lavanda suave) */
+  --pixel-lavender: #7b6bcf;
+  --pixel-lavender-light: #ece9f8;
+  /* Info / hidratación (azul sereno) */
+  --pixel-blue: #3d94c9;
+  --pixel-blue-light: #e6f2f8;
 
-  --background: #F0FDF4; /* Very light mint/green for the main background */
-  --foreground: #1A2E1A; /* Dark green-grey for text */
-  --surface: #FFFFFF; /* White for cards */
-  --surface-secondary: #F8FAF8;
+  --background: #f4f7f2;        /* crema cálida con matiz verde */
+  --foreground: #20291f;        /* verde-grisáceo profundo para texto */
+  --surface: #ffffff;           /* tarjetas */
+  --surface-secondary: #eef3ec; /* tarjetas secundarias / fondos suaves */
+  --muted-foreground: #6b756a;  /* texto secundario / atenuado */
 
-  --border: #E2E8F0;
-  
+  --border: #e2e9df;
+
   --font-inter: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -27,6 +32,7 @@
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
   --color-surface-secondary: var(--surface-secondary);
+  --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
 
   --color-pixel-mint: var(--pixel-mint);
@@ -39,64 +45,52 @@
   --color-pixel-blue-light: var(--pixel-blue-light);
 
   --font-sans: var(--font-inter);
-  --font-display: "Space Grotesk", sans-serif;
+  --font-display: "Space Grotesk", var(--font-inter);
   --font-mono: "JetBrains Mono", monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #050811; /* HSL oscuro profundo */
-    --foreground: #F8FAF8;
-    --surface: #0a0f1d;
-    --surface-secondary: #121829;
-    --border: rgba(255, 255, 255, 0.08);
+    /* ===== Verde Sereno — Dark ===== */
+    --background: #131513;
+    --foreground: #f0f1ee;
+    --surface: #1b1e1b;
+    --surface-secondary: #232823;
+    --muted-foreground: #a6a9a3;
+    --border: #2c302c;
 
-    /* Brighter accents for better visibility in dark mode */
-    --pixel-mint: #10b981;
-    --pixel-mint-light: rgba(16, 185, 129, 0.1);
-    --pixel-peach: #f97316;
-    --pixel-peach-light: rgba(249, 115, 22, 0.1);
-    --pixel-lavender: #8b5cf6;
-    --pixel-lavender-light: rgba(139, 92, 246, 0.1);
-    --pixel-blue: #3b82f6;
-    --pixel-blue-light: rgba(59, 130, 246, 0.1);
+    --pixel-mint: #3ecf8e;
+    --pixel-mint-light: rgba(62, 207, 142, 0.12);
+    --pixel-peach: #eaa85a;
+    --pixel-peach-light: rgba(234, 168, 90, 0.12);
+    --pixel-lavender: #a99be8;
+    --pixel-lavender-light: rgba(169, 155, 232, 0.12);
+    --pixel-blue: #5cb3e0;
+    --pixel-blue-light: rgba(92, 179, 224, 0.12);
   }
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), sans-serif;
+  font-family: var(--font-inter), sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Utilities for Material You feel */
+/* Sombra suave estilo tarjeta de bienestar */
 .material-shadow {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 16px -6px rgba(30, 60, 40, 0.10), 0 1px 3px rgba(30, 60, 40, 0.06);
 }
 
 .material-rounded {
   border-radius: 1.5rem;
 }
 
-/* Custom Grid background */
-.cyber-grid {
-  background-size: 40px 40px;
-  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-}
-
-/* Laser scan animation */
+/* Laser scan animation (usada por el escáner Lens) */
 @keyframes laser-scan {
-  0% {
-    top: 0%;
-  }
-  50% {
-    top: 100%;
-  }
-  100% {
-    top: 0%;
-  }
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
 }
 
 .animate-laser {
@@ -104,22 +98,17 @@ body {
   left: 0;
   width: 100%;
   height: 3px;
-  background: linear-gradient(90deg, transparent, #22c55e, #10b981, #22c55e, transparent);
-  box-shadow: 0 0 12px 2px rgba(34, 197, 94, 0.8);
+  background: linear-gradient(90deg, transparent, var(--pixel-mint), transparent);
+  box-shadow: 0 0 12px 2px rgba(15, 157, 107, 0.4);
   animation: laser-scan 3s infinite linear;
 }
 
-/* Sound Wave animation */
+/* Sound Wave animation (usada por la grabación de voz) */
 @keyframes audio-wave {
-  0%, 100% {
-    height: 4px;
-  }
-  50% {
-    height: 24px;
-  }
+  0%, 100% { height: 4px; }
+  50% { height: 24px; }
 }
 
 .wave-bar {
   animation: audio-wave 1.2s ease-in-out infinite;
 }
-

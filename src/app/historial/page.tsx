@@ -170,47 +170,45 @@ export default function HistorialPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 cyber-grid relative overflow-x-hidden pb-28">
-      {/* Background radial highlight */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[400px] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none"></div>
+    <main className="min-h-screen bg-background text-foreground relative overflow-x-hidden pb-28">
 
       <div className="max-w-md mx-auto px-4 pt-4">
         
         {/* Navigation/Header Bar */}
-        <header className="flex justify-between items-center p-5 mb-6 border border-white/10 bg-white/5 backdrop-blur-md rounded-2xl">
+        <header className="flex justify-between items-center p-5 mb-6 border border-border bg-surface-secondary rounded-2xl">
           <div>
-            <h1 className="text-xs uppercase tracking-[0.2em] text-slate-400 font-semibold">Consola Historial</h1>
-            <p className="text-base font-bold tracking-tight text-white">{activeProfile} <span className="text-xs text-blue-400 ml-1.5">• Diario Histórico</span></p>
+            <h1 className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-semibold">Historial</h1>
+            <p className="text-base font-bold tracking-tight text-foreground">{activeProfile}</p>
           </div>
           <button
             onClick={handleResync}
             disabled={resyncing}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 text-xs font-semibold cursor-pointer transition-all"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-surface-secondary border border-border text-foreground hover:bg-surface-secondary text-xs font-semibold cursor-pointer transition-all"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${resyncing ? 'animate-spin' : ''}`} />
-            <span>{resyncing ? 'Resincronizando...' : 'Resincronizar'}</span>
+            <span>{resyncing ? 'Resincronizando…' : 'Resincronizar'}</span>
           </button>
         </header>
 
         {/* Date Selector */}
-        <div className="bg-white/[0.03] border border-white/10 p-5 rounded-[2rem] mb-6 flex flex-col space-y-2 backdrop-blur-md">
-          <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Seleccionar Fecha del Historial</label>
+        <div className="bg-surface border border-border p-5 rounded-[2rem] mb-6 flex flex-col space-y-2">
+          <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Seleccioná una fecha</label>
           <Input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full text-center font-bold text-base h-11 bg-black/60 border-white/10 text-white rounded-xl focus:border-blue-500"
+            className="w-full text-center font-bold text-base h-11 bg-surface-secondary border-border text-foreground rounded-xl focus:border-pixel-mint"
           />
         </div>
 
         {loading && (
-          <div className="text-center text-slate-400 animate-pulse mt-10 text-xs font-mono uppercase tracking-widest">
-            Cargando registros del archivo central...
+          <div className="text-center text-muted-foreground animate-pulse mt-10 text-xs font-mono uppercase tracking-widest">
+            Cargando registros…
           </div>
         )}
 
         {error && (
-          <div className="bg-red-950/40 border border-red-500/30 text-red-400 p-4 rounded-[1.5rem] text-center text-xs font-mono">
+          <div className="bg-red-500/10 border border-red-500/30 text-red-500 p-4 rounded-[1.5rem] text-center text-xs font-mono">
             {error}
           </div>
         )}
@@ -219,24 +217,24 @@ export default function HistorialPage() {
           <div className="animate-in fade-in slide-in-from-bottom-4 space-y-6">
             
             {/* Day Summary Card */}
-            <div className="bg-white/[0.03] border border-white/10 p-5 rounded-[2rem]">
-              <h3 className="font-mono text-[10px] text-slate-400 uppercase tracking-widest text-center mb-4">Resumen de Consumo ({date})</h3>
+            <div className="bg-surface border border-border p-5 rounded-[2rem]">
+              <h3 className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest text-center mb-4">Resumen de Consumo ({date})</h3>
               <div className="grid grid-cols-4 gap-2 text-center">
-                <div className="flex flex-col items-center bg-white/5 p-2 rounded-xl border border-white/5 font-mono">
-                  <span className="text-[9px] text-amber-400 font-bold uppercase">Calorías</span>
-                  <span className="font-bold text-xs text-white mt-0.5">{Math.round(totalCals)}</span>
+                <div className="flex flex-col items-center bg-surface-secondary p-2 rounded-xl border border-border font-mono">
+                  <span className="text-[9px] text-pixel-peach font-bold uppercase">Calorías</span>
+                  <span className="font-bold text-xs text-foreground mt-0.5">{Math.round(totalCals)}</span>
                 </div>
-                <div className="flex flex-col items-center bg-white/5 p-2 rounded-xl border border-white/5 font-mono">
-                  <span className="text-[9px] text-blue-400 font-bold uppercase">Proteínas</span>
-                  <span className="font-bold text-xs text-white mt-0.5">{Math.round(totalProt)}g</span>
+                <div className="flex flex-col items-center bg-surface-secondary p-2 rounded-xl border border-border font-mono">
+                  <span className="text-[9px] text-pixel-blue font-bold uppercase">Proteínas</span>
+                  <span className="font-bold text-xs text-foreground mt-0.5">{Math.round(totalProt)}g</span>
                 </div>
-                <div className="flex flex-col items-center bg-white/5 p-2 rounded-xl border border-white/5 font-mono">
-                  <span className="text-[9px] text-emerald-400 font-bold uppercase">Carbos</span>
-                  <span className="font-bold text-xs text-white mt-0.5">{Math.round(totalCarbs)}g</span>
+                <div className="flex flex-col items-center bg-surface-secondary p-2 rounded-xl border border-border font-mono">
+                  <span className="text-[9px] text-pixel-mint font-bold uppercase">Carbos</span>
+                  <span className="font-bold text-xs text-foreground mt-0.5">{Math.round(totalCarbs)}g</span>
                 </div>
-                <div className="flex flex-col items-center bg-white/5 p-2 rounded-xl border border-white/5 font-mono">
-                  <span className="text-[9px] text-purple-400 font-bold uppercase">Grasas</span>
-                  <span className="font-bold text-xs text-white mt-0.5">{Math.round(totalFats)}g</span>
+                <div className="flex flex-col items-center bg-surface-secondary p-2 rounded-xl border border-border font-mono">
+                  <span className="text-[9px] text-pixel-lavender font-bold uppercase">Grasas</span>
+                  <span className="font-bold text-xs text-foreground mt-0.5">{Math.round(totalFats)}g</span>
                 </div>
               </div>
             </div>
@@ -248,24 +246,24 @@ export default function HistorialPage() {
                 const mealCals = entries.reduce((acc: number, curr: any) => acc + (curr.macros?.calories || 0), 0);
 
                 return (
-                  <div key={meal} className="overflow-hidden border border-white/10 rounded-[2rem] bg-white/[0.03]">
-                    <div className="p-4 flex items-center justify-between border-b border-white/5 bg-white/[0.01]">
+                  <div key={meal} className="overflow-hidden border border-border rounded-[2rem] bg-surface">
+                    <div className="p-4 flex items-center justify-between border-b border-border bg-surface-secondary">
                       <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-sm">
+                        <div className="w-8 h-8 rounded-full bg-surface-secondary border border-border flex items-center justify-center text-sm">
                           {meal === "Desayuno" && "🌅"}
                           {meal === "Almuerzo" && "☀️"}
                           {meal === "Merienda" && "☕"}
                           {meal === "Cena" && "🌙"}
                         </div>
-                        <h3 className="font-semibold text-sm text-slate-200">{getMealName(meal)}</h3>
+                        <h3 className="font-semibold text-sm text-foreground">{getMealName(meal)}</h3>
                       </div>
                       <div className="flex items-center space-x-3">
-                        <span className="text-xs font-mono text-slate-400">
+                        <span className="text-xs font-mono text-muted-foreground">
                           {Math.round(mealCals)} kcal
                         </span>
                         <button
                           onClick={() => setAddingMeal(meal)}
-                          className="w-7 h-7 rounded-full bg-white/5 hover:bg-emerald-500 hover:text-slate-950 flex items-center justify-center text-slate-300 transition-all border border-white/15 cursor-pointer shadow-sm"
+                          className="w-7 h-7 rounded-full bg-surface-secondary hover:bg-pixel-mint hover:text-white flex items-center justify-center text-foreground transition-all border border-border cursor-pointer shadow-sm"
                         >
                           <Plus className="w-4 h-4" />
                         </button>
@@ -274,14 +272,14 @@ export default function HistorialPage() {
 
                     <div className="p-3">
                       {entries.length === 0 ? (
-                        <p className="text-center text-[11px] text-slate-500 py-3 font-mono">Sin registros en {getMealName(meal)}</p>
+                        <p className="text-center text-[11px] text-muted-foreground py-3 font-mono">Sin registros en {getMealName(meal)}</p>
                       ) : (
                         <ul className="space-y-2">
                           {entries.map((entry: any) => (
-                            <li key={entry.id} className="bg-white/5 border border-white/5 p-3 rounded-2xl flex justify-between items-center group">
+                            <li key={entry.id} className="bg-surface-secondary border border-border p-3 rounded-2xl flex justify-between items-center group">
                               <div className="flex-1 pr-2 min-w-0">
-                                <p className="font-semibold text-xs text-white truncate">{entry.name} <span className="text-[10px] font-normal text-slate-400 ml-1 font-mono">({entry.grams}g)</span></p>
-                                <p className="text-[10px] text-slate-400 mt-0.5 font-mono">
+                                <p className="font-semibold text-xs text-foreground truncate">{entry.name} <span className="text-[10px] font-normal text-muted-foreground ml-1 font-mono">({entry.grams}g)</span></p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">
                                   {Math.round(entry.macros.calories)} kcal • P:{Math.round(entry.macros.protein)}g C:{Math.round(entry.macros.carbs)}g G:{Math.round(entry.macros.fats)}g
                                 </p>
                               </div>
@@ -296,14 +294,14 @@ export default function HistorialPage() {
                                     carbs: entry.macros.carbs,
                                     fats: entry.macros.fats
                                   })}
-                                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 transition-colors cursor-pointer"
+                                  className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                                   title="Editar"
                                 >
                                   <Pencil className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteEntry(entry.id)}
-                                  className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 transition-colors cursor-pointer"
+                                  className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 transition-colors cursor-pointer"
                                   title="Eliminar"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -324,85 +322,85 @@ export default function HistorialPage() {
 
       {/* EDIT MODAL DIALOG */}
       {editingEntry && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-slate-900 border border-white/10 rounded-[2rem] overflow-hidden animate-in zoom-in-95">
-            <div className="px-5 py-4 bg-white/5 flex items-center justify-between border-b border-white/10">
-              <h3 className="font-bold text-xs font-mono uppercase tracking-wider text-slate-300">Editar Alimento ({date})</h3>
-              <button onClick={() => setEditingEntry(null)} className="text-slate-400 hover:text-slate-200 cursor-pointer">
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-surface border border-border rounded-[2rem] overflow-hidden animate-in zoom-in-95">
+            <div className="px-5 py-4 bg-surface-secondary flex items-center justify-between border-b border-border">
+              <h3 className="font-bold text-xs font-mono uppercase tracking-wider text-foreground">Editar alimento ({date})</h3>
+              <button onClick={() => setEditingEntry(null)} className="text-muted-foreground hover:text-foreground cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="p-5 space-y-3.5">
               <div>
-                <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1 block">Nombre</label>
+                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1 block">Nombre</label>
                 <Input
                   value={editingEntry.name}
                   onChange={(e) => setEditingEntry({ ...editingEntry, name: e.target.value })}
-                  className="bg-black/60 border-white/10 text-white h-9 rounded-xl focus:border-blue-500"
+                  className="bg-surface-secondary border-border text-foreground h-9 rounded-xl focus:border-pixel-mint"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1 block">Cantidad (g)</label>
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1 block">Cantidad (g)</label>
                   <Input
                     type="number"
                     value={editingEntry.grams}
                     onChange={(e) => setEditingEntry({ ...editingEntry, grams: e.target.value })}
-                    className="bg-black/60 border-white/10 text-white h-9 rounded-xl focus:border-blue-500"
+                    className="bg-surface-secondary border-border text-foreground h-9 rounded-xl focus:border-pixel-mint"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1 block">Calorías (kcal)</label>
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1 block">Calorías (kcal)</label>
                   <Input
                     type="number"
                     value={editingEntry.calories}
                     onChange={(e) => setEditingEntry({ ...editingEntry, calories: e.target.value })}
-                    className="bg-black/60 border-white/10 text-white h-9 rounded-xl focus:border-blue-500"
+                    className="bg-surface-secondary border-border text-foreground h-9 rounded-xl focus:border-pixel-mint"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="text-[9px] font-mono uppercase tracking-wider text-slate-400 text-center block mb-1">Prot (g)</label>
+                  <label className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground text-center block mb-1">Prot (g)</label>
                   <Input
                     type="number"
                     step="0.1"
                     value={editingEntry.protein}
                     onChange={(e) => setEditingEntry({ ...editingEntry, protein: e.target.value })}
-                    className="bg-black/60 border-white/10 text-white h-9 rounded-xl focus:border-blue-500 text-center font-mono"
+                    className="bg-surface-secondary border-border text-foreground h-9 rounded-xl focus:border-pixel-mint text-center font-mono"
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] font-mono uppercase tracking-wider text-slate-400 text-center block mb-1">Carb (g)</label>
+                  <label className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground text-center block mb-1">Carb (g)</label>
                   <Input
                     type="number"
                     step="0.1"
                     value={editingEntry.carbs}
                     onChange={(e) => setEditingEntry({ ...editingEntry, carbs: e.target.value })}
-                    className="bg-black/60 border-white/10 text-white h-9 rounded-xl focus:border-blue-500 text-center font-mono"
+                    className="bg-surface-secondary border-border text-foreground h-9 rounded-xl focus:border-pixel-mint text-center font-mono"
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] font-mono uppercase tracking-wider text-slate-400 text-center block mb-1">Grasa (g)</label>
+                  <label className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground text-center block mb-1">Grasa (g)</label>
                   <Input
                     type="number"
                     step="0.1"
                     value={editingEntry.fats}
                     onChange={(e) => setEditingEntry({ ...editingEntry, fats: e.target.value })}
-                    className="bg-black/60 border-white/10 text-white h-9 rounded-xl focus:border-blue-500 text-center font-mono"
+                    className="bg-surface-secondary border-border text-foreground h-9 rounded-xl focus:border-pixel-mint text-center font-mono"
                   />
                 </div>
               </div>
-              <div className="pt-3 flex space-x-2 border-t border-white/5">
+              <div className="pt-3 flex space-x-2 border-t border-border">
                 <button
                   onClick={() => setEditingEntry(null)}
-                  className="flex-1 py-2 rounded-xl border border-white/10 text-xs font-mono hover:bg-white/5 text-slate-300 cursor-pointer"
+                  className="flex-1 py-2 rounded-xl border border-border text-xs font-mono hover:bg-surface-secondary text-foreground cursor-pointer"
                 >
                   CANCELAR
                 </button>
                 <button
                   onClick={handleSaveEdit}
-                  className="flex-1 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-blue-500 hover:brightness-110 text-white text-xs font-display font-bold cursor-pointer"
+                  className="flex-1 py-2 rounded-xl bg-pixel-mint hover:brightness-95 text-white text-xs font-semibold cursor-pointer"
                 >
                   GUARDAR
                 </button>
@@ -414,86 +412,86 @@ export default function HistorialPage() {
 
       {/* ADD DIALOG MODAL */}
       {addingMeal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-slate-900 border border-white/10 rounded-[2rem] overflow-hidden animate-in zoom-in-95">
-            <div className="px-5 py-4 bg-white/5 flex items-center justify-between border-b border-white/10">
-              <h3 className="font-bold text-xs font-mono uppercase tracking-wider text-slate-300">Añadir a {getMealName(addingMeal)} ({date})</h3>
-              <button onClick={() => setAddingMeal(null)} className="text-slate-400 hover:text-slate-200 cursor-pointer">
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-surface border border-border rounded-[2rem] overflow-hidden animate-in zoom-in-95">
+            <div className="px-5 py-4 bg-surface-secondary flex items-center justify-between border-b border-border">
+              <h3 className="font-bold text-xs font-mono uppercase tracking-wider text-foreground">Añadir a {getMealName(addingMeal)} ({date})</h3>
+              <button onClick={() => setAddingMeal(null)} className="text-muted-foreground hover:text-foreground cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="p-5 space-y-3.5">
               <div>
-                <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1 block">Nombre del Alimento</label>
+                <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1 block">Nombre del alimento</label>
                 <Input
                   placeholder="Ej. Pollo con arroz"
                   value={addForm.name}
                   onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
-                  className="bg-black/60 border-white/10 text-white h-9 rounded-xl focus:border-blue-500"
+                  className="bg-surface-secondary border-border text-foreground h-9 rounded-xl focus:border-pixel-mint"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1 block">Cantidad (g)</label>
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1 block">Cantidad (g)</label>
                   <Input
                     type="number"
                     value={addForm.grams}
                     onChange={(e) => setAddForm({ ...addForm, grams: e.target.value })}
-                    className="bg-black/60 border-white/10 text-white h-9 rounded-xl focus:border-blue-500"
+                    className="bg-surface-secondary border-border text-foreground h-9 rounded-xl focus:border-pixel-mint"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1 block">Calorías (kcal)</label>
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1 block">Calorías (kcal)</label>
                   <Input
                     type="number"
                     value={addForm.calories}
                     onChange={(e) => setAddForm({ ...addForm, calories: e.target.value })}
-                    className="bg-black/60 border-white/10 text-white h-9 rounded-xl focus:border-blue-500"
+                    className="bg-surface-secondary border-border text-foreground h-9 rounded-xl focus:border-pixel-mint"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="text-[9px] font-mono uppercase tracking-wider text-slate-400 text-center block mb-1">Prot (g)</label>
+                  <label className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground text-center block mb-1">Prot (g)</label>
                   <Input
                     type="number"
                     step="0.1"
                     value={addForm.protein}
                     onChange={(e) => setAddForm({ ...addForm, protein: e.target.value })}
-                    className="bg-black/60 border-white/10 text-white h-9 rounded-xl focus:border-blue-500 text-center font-mono"
+                    className="bg-surface-secondary border-border text-foreground h-9 rounded-xl focus:border-pixel-mint text-center font-mono"
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] font-mono uppercase tracking-wider text-slate-400 text-center block mb-1">Carb (g)</label>
+                  <label className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground text-center block mb-1">Carb (g)</label>
                   <Input
                     type="number"
                     step="0.1"
                     value={addForm.carbs}
                     onChange={(e) => setAddForm({ ...addForm, carbs: e.target.value })}
-                    className="bg-black/60 border-white/10 text-white h-9 rounded-xl focus:border-blue-500 text-center font-mono"
+                    className="bg-surface-secondary border-border text-foreground h-9 rounded-xl focus:border-pixel-mint text-center font-mono"
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] font-mono uppercase tracking-wider text-slate-400 text-center block mb-1">Grasa (g)</label>
+                  <label className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground text-center block mb-1">Grasa (g)</label>
                   <Input
                     type="number"
                     step="0.1"
                     value={addForm.fats}
                     onChange={(e) => setAddForm({ ...addForm, fats: e.target.value })}
-                    className="bg-black/60 border-white/10 text-white h-9 rounded-xl focus:border-blue-500 text-center font-mono"
+                    className="bg-surface-secondary border-border text-foreground h-9 rounded-xl focus:border-pixel-mint text-center font-mono"
                   />
                 </div>
               </div>
-              <div className="pt-3 flex space-x-2 border-t border-white/5">
+              <div className="pt-3 flex space-x-2 border-t border-border">
                 <button
                   onClick={() => setAddingMeal(null)}
-                  className="flex-1 py-2 rounded-xl border border-white/10 text-xs font-mono hover:bg-white/5 text-slate-300 cursor-pointer"
+                  className="flex-1 py-2 rounded-xl border border-border text-xs font-mono hover:bg-surface-secondary text-foreground cursor-pointer"
                 >
                   CANCELAR
                 </button>
                 <button
                   onClick={handleSaveAdd}
-                  className="flex-1 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-blue-500 hover:brightness-110 text-white text-xs font-display font-bold cursor-pointer"
+                  className="flex-1 py-2 rounded-xl bg-pixel-mint hover:brightness-95 text-white text-xs font-semibold cursor-pointer"
                 >
                   AÑADIR LOG
                 </button>

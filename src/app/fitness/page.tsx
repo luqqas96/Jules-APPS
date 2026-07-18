@@ -1,40 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAppContext } from "@/contexts/AppContext";
 import { getTodayString } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
-import { 
-  Dumbbell, Flame, Zap, Shield, Activity, Target, Settings, 
-  ArrowDownCircle, ArrowUpCircle, Gauge, Award, TrendingUp, RefreshCw, Trash2
-} from "lucide-react";
+import { Dumbbell, TrendingUp, Award, Trash2 } from "lucide-react";
 
-// Definición de las rutinas estáticas
+// Rutinas estáticas por grupo
 const ROUTINES = {
-  Push: [
-    { name: "Press Inclinado", icon: <Dumbbell className="w-6 h-6 text-blue-400" /> },
-    { name: "Press Plano", icon: <Dumbbell className="w-6 h-6 text-blue-400" /> },
-    { name: "Press Militar", icon: <Flame className="w-6 h-6 text-orange-500" /> },
-    { name: "Hombros en polea", icon: <Settings className="w-6 h-6 text-slate-500" /> }
-  ],
-  Pull: [
-    { name: "Jalón al pecho", icon: <ArrowDownCircle className="w-6 h-6 text-emerald-400" /> },
-    { name: "Remo en máquina", icon: <Activity className="w-6 h-6 text-green-500" /> },
-    { name: "Dominadas libres", icon: <ArrowUpCircle className="w-6 h-6 text-red-500" /> }
-  ],
-  Piernas: [
-    { name: "Sentadillas Hack", icon: <Zap className="w-6 h-6 text-yellow-500" /> },
-    { name: "Press Legs a 45°", icon: <Shield className="w-6 h-6 text-purple-400" /> },
-    { name: "Máquina de gemelos", icon: <Gauge className="w-6 h-6 text-pink-500" /> }
-  ],
-  Brazos: [
-    { name: "Curl de bíceps", icon: <Target className="w-6 h-6 text-red-500" /> },
-    { name: "Press francés", icon: <Dumbbell className="w-6 h-6 text-blue-500" /> },
-    { name: "Tríceps en polea", icon: <Settings className="w-6 h-6 text-slate-500" /> }
-  ]
+  Push: ["Press Inclinado", "Press Plano", "Press Militar", "Hombros en polea"],
+  Pull: ["Jalón al pecho", "Remo en máquina", "Dominadas libres"],
+  Piernas: ["Sentadillas Hack", "Press Legs a 45°", "Máquina de gemelos"],
+  Brazos: ["Curl de bíceps", "Press francés", "Tríceps en polea"],
 };
 
 type RoutineCategory = keyof typeof ROUTINES;
@@ -51,10 +30,8 @@ interface WorkoutLog {
 
 export default function FitnessPage() {
   const { activeProfile } = useAppContext();
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState<RoutineCategory>("Push");
 
-  // States para el formulario y base de datos
   const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
   const [sets, setSets] = useState("4");
   const [reps, setReps] = useState("10");
@@ -62,7 +39,6 @@ export default function FitnessPage() {
   const [loading, setLoading] = useState(false);
   const [todayWorkouts, setTodayWorkouts] = useState<WorkoutLog[]>([]);
 
-  // Cargar entrenamientos del día
   const loadTodayWorkouts = async () => {
     try {
       const todayStr = getTodayString();
@@ -71,7 +47,7 @@ export default function FitnessPage() {
         .select('*')
         .eq('profile', activeProfile)
         .eq('date', todayStr);
-      
+
       if (!error && data) {
         setTodayWorkouts(data as WorkoutLog[]);
       }
@@ -123,172 +99,126 @@ export default function FitnessPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('fitness_progress')
-        .delete()
-        .eq('id', id);
-      
-      if (!error) {
-        await loadTodayWorkouts();
-      }
+      const { error } = await supabase.from('fitness_progress').delete().eq('id', id);
+      if (!error) await loadTodayWorkouts();
     } catch (e) {
       console.error(e);
     }
   };
 
-  // Calcular métricas
   const totalSetsToday = todayWorkouts.reduce((acc, log) => acc + Number(log.sets), 0);
   const totalVolumeToday = todayWorkouts.reduce((acc, log) => acc + (Number(log.sets) * Number(log.reps) * Number(log.weight)), 0);
 
-  // Clasificación Rango Atlético divertida basada en volumen
-  let athleteRange = "INICIANDO ENTRENAMIENTO";
-  if (totalVolumeToday > 3000) {
-    athleteRange = "TITÁN DE ÉLITE";
-  } else if (totalVolumeToday > 1500) {
-    athleteRange = "GUERRERO AVANZADO";
-  } else if (totalVolumeToday > 500) {
-    athleteRange = "RANGER INTERMEDIO";
-  }
+  let athleteRange = "Iniciando";
+  if (totalVolumeToday > 3000) athleteRange = "Titán de élite";
+  else if (totalVolumeToday > 1500) athleteRange = "Avanzado";
+  else if (totalVolumeToday > 500) athleteRange = "Intermedio";
 
-  const tabs: {id: RoutineCategory, color: string}[] = [
-    { id: "Push", color: "bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.4)] text-white" },
-    { id: "Pull", color: "bg-emerald-600 shadow-[0_0_10px_rgba(16,185,129,0.4)] text-white" },
-    { id: "Piernas", color: "bg-purple-600 shadow-[0_0_10px_rgba(139,92,246,0.4)] text-white" },
-    { id: "Brazos", color: "bg-orange-600 shadow-[0_0_10px_rgba(249,115,22,0.4)] text-white" }
-  ];
+  const tabs = Object.keys(ROUTINES) as RoutineCategory[];
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 cyber-grid relative overflow-x-hidden pb-28">
-      {/* Background radial highlight */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[400px] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none"></div>
+    <main className="min-h-screen bg-background text-foreground pb-28">
+      <div className="max-w-2xl mx-auto px-4 pt-5">
 
-      <div className="max-w-4xl mx-auto px-4 pt-4">
-        
-        {/* Navigation/Header Bar */}
-        <header className="flex justify-between items-center p-5 mb-6 border border-white/10 bg-white/5 backdrop-blur-md rounded-2xl">
+        {/* Encabezado */}
+        <header className="flex justify-between items-center p-5 mb-5 border border-border bg-surface rounded-3xl material-shadow">
           <div>
-            <h1 className="text-xs uppercase tracking-[0.2em] text-slate-400 font-semibold">Registro Gimnasio</h1>
-            <p className="text-base font-bold tracking-tight text-white">{activeProfile} <span className="text-xs text-blue-400 ml-1.5">• Comando GYM</span></p>
+            <h1 className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Registro de gimnasio</h1>
+            <p className="text-base font-semibold tracking-tight text-foreground mt-0.5">{activeProfile}</p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] uppercase tracking-widest text-slate-400">Hoy</p>
-            <p className="text-sm font-mono text-slate-300 font-bold">{getTodayString()}</p>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Hoy</p>
+            <p className="text-sm font-medium text-foreground tabular-nums">{getTodayString()}</p>
           </div>
         </header>
 
-        {/* Top Banner Stats Bento Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          {/* Active Sets widget */}
-          <div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-5 flex items-center justify-between">
+        {/* Métricas del día */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+          <div className="bg-surface border border-border rounded-3xl p-5 flex items-center justify-between material-shadow">
             <div className="space-y-1">
-              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Series Totales Hoy</span>
-              <p className="text-xl font-display font-black text-emerald-400">{totalSetsToday} series</p>
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Series hoy</span>
+              <p className="text-xl font-bold text-pixel-mint tabular-nums">{totalSetsToday}</p>
             </div>
-            <Dumbbell className="w-7 h-7 text-emerald-500/50 animate-pulse" />
+            <Dumbbell className="w-7 h-7 text-pixel-mint/40" />
           </div>
 
-          {/* Volume widget */}
-          <div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-5 flex items-center justify-between">
+          <div className="bg-surface border border-border rounded-3xl p-5 flex items-center justify-between material-shadow">
             <div className="space-y-1">
-              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Volumen Total Hoy</span>
-              <p className="text-xl font-display font-black text-violet-400">{totalVolumeToday.toLocaleString()} kg</p>
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Volumen hoy</span>
+              <p className="text-xl font-bold text-pixel-lavender tabular-nums">{totalVolumeToday.toLocaleString()} kg</p>
             </div>
-            <TrendingUp className="w-7 h-7 text-violet-500/50" />
+            <TrendingUp className="w-7 h-7 text-pixel-lavender/40" />
           </div>
 
-          {/* Level Widget */}
-          <div className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-5 flex items-center justify-between">
+          <div className="bg-surface border border-border rounded-3xl p-5 flex items-center justify-between material-shadow">
             <div className="space-y-1">
-              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Rango Atlético</span>
-              <p className="text-xs font-display font-black text-amber-500 uppercase tracking-wider">{athleteRange}</p>
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Rango</span>
+              <p className="text-sm font-bold text-pixel-peach">{athleteRange}</p>
             </div>
-            <Award className="w-7 h-7 text-amber-500/50" />
+            <Award className="w-7 h-7 text-pixel-peach/40" />
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex space-x-2 mb-6 overflow-x-auto pb-2 scrollbar-none">
+        {/* Tabs de grupo muscular */}
+        <div className="flex space-x-2 mb-5 overflow-x-auto pb-1">
           {tabs.map(tab => (
             <button
-              key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setSelectedExercise(null); }}
-              className={`px-4 py-2 rounded-full whitespace-nowrap text-xs font-display font-black uppercase tracking-wider transition-all cursor-pointer ${
-                activeTab === tab.id 
-                  ? tab.color
-                  : 'bg-white/5 border border-white/10 text-slate-400 hover:text-slate-200'
+              key={tab}
+              onClick={() => { setActiveTab(tab); setSelectedExercise(null); }}
+              className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-semibold transition-all cursor-pointer ${
+                activeTab === tab
+                  ? 'bg-pixel-mint text-white shadow-sm'
+                  : 'bg-surface border border-border text-muted-foreground hover:text-foreground'
               }`}
             >
-              {tab.id}
+              {tab}
             </button>
           ))}
         </div>
 
-        {/* Exercises Grid */}
-        <div className="space-y-4 mb-8">
+        {/* Ejercicios */}
+        <div className="space-y-3 mb-8">
           {ROUTINES[activeTab].map((exercise) => (
             <div
-              key={exercise.name}
+              key={exercise}
               onClick={(e) => {
                 if (!(e.target as HTMLElement).closest("form")) {
-                  setSelectedExercise(selectedExercise === exercise.name ? null : exercise.name);
+                  setSelectedExercise(selectedExercise === exercise ? null : exercise);
                 }
               }}
               className={`p-4 rounded-3xl border transition-all cursor-pointer ${
-                selectedExercise === exercise.name 
-                  ? 'border-blue-500/60 bg-blue-500/10 shadow-[0_0_12px_rgba(59,130,246,0.15)]' 
-                  : 'border-white/10 bg-white/[0.03] hover:bg-white/5'
+                selectedExercise === exercise
+                  ? 'border-pixel-mint bg-pixel-mint-light'
+                  : 'border-border bg-surface hover:bg-surface-secondary'
               }`}
             >
               <div className="flex items-center space-x-4">
-                <div className={`w-11 h-11 rounded-full flex items-center justify-center text-xl bg-black/40 border border-white/10`}>
-                  {exercise.icon}
+                <div className="w-11 h-11 rounded-full flex items-center justify-center bg-pixel-mint-light">
+                  <Dumbbell className="w-5 h-5 text-pixel-mint" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-slate-100 text-base">{exercise.name}</h3>
-                  <p className="text-[10px] text-slate-400 mt-0.5 font-mono">TOCA PARA REGISTRAR SERIE</p>
+                  <h3 className="font-semibold text-foreground text-base">{exercise}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Toca para registrar una serie</p>
                 </div>
               </div>
 
-              {/* Formulario que se despliega si está seleccionado */}
-              {selectedExercise === exercise.name && (
-                <div className="mt-4 pt-4 border-t border-white/15 animate-in slide-in-from-top-2 fade-in">
+              {selectedExercise === exercise && (
+                <div className="mt-4 pt-4 border-t border-border animate-in slide-in-from-top-2 fade-in">
                   <form onSubmit={handleSave} className="flex items-end space-x-3">
                     <div className="flex-1">
-                      <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1 block">Series</label>
-                      <Input
-                        type="number"
-                        required
-                        value={sets}
-                        onChange={(e) => setSets(e.target.value)}
-                        placeholder="4"
-                        className="bg-black/60 border-white/15 text-white h-10 rounded-xl focus:border-blue-500 text-center font-mono"
-                      />
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Series</label>
+                      <Input type="number" required value={sets} onChange={(e) => setSets(e.target.value)} placeholder="4" className="h-10 rounded-xl text-center tabular-nums" />
                     </div>
                     <div className="flex-1">
-                      <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1 block">Reps</label>
-                      <Input
-                        type="number"
-                        required
-                        value={reps}
-                        onChange={(e) => setReps(e.target.value)}
-                        placeholder="10"
-                        className="bg-black/60 border-white/15 text-white h-10 rounded-xl focus:border-blue-500 text-center font-mono"
-                      />
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Reps</label>
+                      <Input type="number" required value={reps} onChange={(e) => setReps(e.target.value)} placeholder="10" className="h-10 rounded-xl text-center tabular-nums" />
                     </div>
                     <div className="flex-1">
-                      <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1 block">Peso (kg)</label>
-                      <Input
-                        type="number"
-                        step="0.5"
-                        required
-                        value={weight}
-                        onChange={(e) => setWeight(e.target.value)}
-                        placeholder="Ej: 50"
-                        className="bg-black/60 border-white/15 text-white h-10 rounded-xl focus:border-blue-500 text-center font-mono"
-                      />
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Peso (kg)</label>
+                      <Input type="number" step="0.5" required value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="50" className="h-10 rounded-xl text-center tabular-nums" />
                     </div>
-                    <Button type="submit" disabled={loading} className="h-10 px-5 rounded-xl bg-gradient-to-r from-violet-600 to-blue-500 hover:brightness-110 text-white font-semibold text-xs uppercase tracking-wider cursor-pointer">
-                      {loading ? "..." : "Log"}
+                    <Button type="submit" disabled={loading} variant="mint" className="h-10 px-5 rounded-xl font-semibold text-sm cursor-pointer">
+                      {loading ? "…" : "Anotar"}
                     </Button>
                   </form>
                 </div>
@@ -297,22 +227,23 @@ export default function FitnessPage() {
           ))}
         </div>
 
-        {/* Daily Lift List (Lógica adicional para listar los ejercicios ya anotados hoy) */}
+        {/* Ejercicios registrados hoy */}
         {todayWorkouts.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="font-display font-black text-xs uppercase tracking-[0.15em] text-slate-300 border-b border-white/10 pb-2">
-              Ejercicios Logueados Hoy
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold text-foreground border-b border-border pb-2">
+              Registrado hoy
             </h2>
             <div className="space-y-2">
               {todayWorkouts.map((workout) => (
-                <div key={workout.id} className="flex justify-between items-center p-3 rounded-2xl bg-white/[0.02] border border-white/5 font-mono text-xs text-slate-200">
+                <div key={workout.id} className="flex justify-between items-center p-3.5 rounded-2xl bg-surface border border-border">
                   <div className="space-y-0.5">
-                    <p className="font-bold text-slate-100 font-sans text-sm">{workout.exercise}</p>
-                    <p className="text-slate-400">{workout.category} • {workout.sets} series x {workout.reps} reps @ {workout.weight} kg</p>
+                    <p className="font-semibold text-foreground text-sm">{workout.exercise}</p>
+                    <p className="text-xs text-muted-foreground tabular-nums">{workout.category} • {workout.sets} series × {workout.reps} reps @ {workout.weight} kg</p>
                   </div>
-                  <button 
+                  <button
                     onClick={() => handleDelete(workout.id)}
-                    className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 transition-colors cursor-pointer"
+                    aria-label="Eliminar"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

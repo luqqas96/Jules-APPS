@@ -142,7 +142,7 @@ export function MealSection({ mealType }: { mealType: MealType }) {
       {expanded && (
         <div className="px-4 pb-4 pt-2 border-t border-surface-secondary">
           {entries.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No food logged yet.</p>
+            <p className="text-sm text-muted-foreground text-center py-4">Sin comidas registradas.</p>
           ) : (
             <ul className="space-y-3 mb-4">
               {entries.map((entry) => (
@@ -272,7 +272,7 @@ export function MealSection({ mealType }: { mealType: MealType }) {
             onClick={() => router.push(`/add?meal=${mealType}`)}
           >
             <PlusIcon className="w-4 h-4 mr-2" />
-            Add to {getMealName(mealType)}
+            Agregar a {getMealName(mealType)}
           </Button>
         </div>
       )}

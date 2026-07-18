@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
-import { Sparkles, Droplet, Moon, Barcode, Sliders } from "lucide-react";
+import { Droplet, Moon } from "lucide-react";
 import { getTodayString } from "@/lib/utils";
 
 export function MacroProgress() {
@@ -11,13 +11,13 @@ export function MacroProgress() {
   const [sleep, setSleep] = useState(0);
   const [mounted, setMounted] = useState(false);
 
-  // Sync hydration & sleep with localStorage
+  // Hidratación y descanso en localStorage
   useEffect(() => {
     setMounted(true);
     const todayStr = getTodayString();
     const savedWater = localStorage.getItem(`jules-water-${activeProfile}-${todayStr}`);
     const savedSleep = localStorage.getItem(`jules-sleep-${activeProfile}-${todayStr}`);
-    
+
     setWater(savedWater ? parseInt(savedWater) : 0);
     setSleep(savedSleep ? parseFloat(savedSleep) : 0);
   }, [activeProfile]);
@@ -37,10 +37,10 @@ export function MacroProgress() {
   };
 
   if (!isLoaded || !mounted) {
-    return <div className="h-[340px] animate-pulse bg-white/[0.03] border border-white/5 rounded-[2rem]" />;
+    return <div className="h-[320px] animate-pulse bg-surface-secondary border border-border rounded-3xl mb-5" />;
   }
 
-  // Calculate totals
+  // Totales
   const totals = { calories: 0, protein: 0, carbs: 0, fats: 0 };
   Object.values(dailyData.meals).forEach(mealEntries => {
     if (!Array.isArray(mealEntries)) return;
@@ -57,163 +57,128 @@ export function MacroProgress() {
   const calorieGoal = macroGoals.calories;
   const remainingCalories = Math.max(0, calorieGoal - totalCalories);
 
-  // Circle stroke math
-  const strokeDasharray = 282.7;
+  // Anillo
+  const radius = 45;
+  const circumference = 2 * Math.PI * radius;
   const progressPercent = calorieGoal > 0 ? Math.min(totalCalories / calorieGoal, 1) : 0;
-  const strokeDashoffset = strokeDasharray * (1 - progressPercent);
+  const strokeDashoffset = circumference * (1 - progressPercent);
+
+  const macroRows = [
+    { label: "Proteína", value: totals.protein, goal: macroGoals.protein, color: "var(--color-pixel-mint)" },
+    { label: "Carbohidratos", value: totals.carbs, goal: macroGoals.carbs, color: "var(--color-pixel-peach)" },
+    { label: "Grasas", value: totals.fats, goal: macroGoals.fats, color: "var(--color-pixel-lavender)" },
+  ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-6">
-      
-      {/* Left Bento: SVG Circular Ring */}
-      <div className="md:col-span-5 bg-white/[0.03] border border-white/10 rounded-[2rem] p-6 flex flex-col items-center justify-between min-h-[300px] relative overflow-hidden group">
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent pointer-events-none"></div>
-        
-        <div className="w-full flex items-center justify-between border-b border-white/10 pb-2 mb-4 relative z-10">
-          <span className="font-display font-black text-xs uppercase tracking-[0.15em] text-blue-400">
-            Análisis Calórico
-          </span>
-          <div className="flex items-center space-x-1 text-[10px] text-slate-400 font-mono">
-            <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-            <span>Calorías Hoy</span>
-          </div>
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-5">
+
+      {/* Anillo calórico */}
+      <div className="md:col-span-5 bg-surface border border-border rounded-3xl p-6 flex flex-col items-center justify-between material-shadow">
+        <div className="w-full flex items-center justify-between border-b border-border pb-3 mb-4">
+          <span className="text-sm font-semibold text-foreground">Calorías de hoy</span>
         </div>
 
-        {/* Ring SVG circle */}
-        <div className="relative w-40 h-40 flex items-center justify-center z-10">
-          <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-white/5" />
-            <circle 
-              cx="50" 
-              cy="50" 
-              r="45" 
-              stroke="currentColor" 
-              strokeWidth="6" 
-              fill="transparent" 
-              strokeDasharray={strokeDasharray} 
-              strokeDashoffset={strokeDashoffset} 
-              className="text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)] transition-all duration-700 ease-out" 
+        <div className="relative w-40 h-40 flex items-center justify-center">
+          <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r={radius} stroke="var(--color-surface-secondary)" strokeWidth="8" fill="transparent" />
+            <circle
+              cx="50"
+              cy="50"
+              r={radius}
+              stroke="var(--color-pixel-mint)"
+              strokeWidth="8"
+              fill="transparent"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              className="transition-all duration-700 ease-out"
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-3xl font-black text-white tracking-tight">{remainingCalories}</span>
-            <span className="text-[9px] uppercase tracking-widest text-slate-400 mt-0.5">Kcal Restantes</span>
+            <span className="text-3xl font-bold text-foreground tracking-tight tabular-nums">{remainingCalories}</span>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">kcal restantes</span>
           </div>
         </div>
 
-        <div className="w-full mt-4 bg-white/5 border border-white/5 rounded-2xl p-2.5 text-center relative z-10">
-          <span className="font-display font-bold text-xs text-slate-200 uppercase tracking-wider">
-            {totalCalories} kcal / {calorieGoal} meta
+        <div className="w-full mt-4 bg-surface-secondary rounded-2xl p-2.5 text-center">
+          <span className="text-sm font-semibold text-foreground tabular-nums">
+            {totalCalories} <span className="text-muted-foreground font-normal">/ {calorieGoal} kcal</span>
           </span>
         </div>
       </div>
 
-      {/* Right Bento: Macros & Logging widgets */}
-      <div className="md:col-span-7 bg-white/[0.03] border border-white/10 rounded-[2rem] p-6 flex flex-col justify-between">
+      {/* Macros + loggers */}
+      <div className="md:col-span-7 bg-surface border border-border rounded-3xl p-6 flex flex-col justify-between material-shadow">
         <div>
-          <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-4">
-            <span className="font-display font-black text-xs uppercase tracking-[0.15em] text-slate-200">
-              Macronutrientes del Día
-            </span>
+          <div className="flex items-center justify-between border-b border-border pb-3 mb-4">
+            <span className="text-sm font-semibold text-foreground">Macronutrientes</span>
           </div>
 
-          {/* Protein */}
-          <div className="space-y-1.5 mb-4">
-            <div className="flex justify-between text-xs font-mono">
-              <span className="text-blue-400 font-bold uppercase tracking-wider">Proteína</span>
-              <span className="text-slate-300 font-bold">{Math.round(totals.protein)}g / {macroGoals.protein}g</span>
+          {macroRows.map((m) => (
+            <div key={m.label} className="space-y-1.5 mb-4 last:mb-2">
+              <div className="flex justify-between text-sm">
+                <span className="font-medium text-foreground">{m.label}</span>
+                <span className="text-muted-foreground font-medium tabular-nums">{Math.round(m.value)}g / {m.goal}g</span>
+              </div>
+              <div className="w-full h-2.5 bg-surface-secondary rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${m.goal > 0 ? Math.min(100, (m.value / m.goal) * 100) : 0}%`, backgroundColor: m.color }}
+                />
+              </div>
             </div>
-            <div className="w-full h-2 bg-black/40 rounded-full overflow-hidden border border-white/5">
-              <div 
-                className="h-full bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
-                style={{ width: `${Math.min(100, (totals.protein / macroGoals.protein) * 100)}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Carbs */}
-          <div className="space-y-1.5 mb-4">
-            <div className="flex justify-between text-xs font-mono">
-              <span className="text-emerald-400 font-bold uppercase tracking-wider">Carbohidratos</span>
-              <span className="text-slate-300 font-bold">{Math.round(totals.carbs)}g / {macroGoals.carbs}g</span>
-            </div>
-            <div className="w-full h-2 bg-black/40 rounded-full overflow-hidden border border-white/5">
-              <div 
-                className="h-full bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.6)]" 
-                style={{ width: `${Math.min(100, (totals.carbs / macroGoals.carbs) * 100)}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Fats */}
-          <div className="space-y-1.5 mb-2">
-            <div className="flex justify-between text-xs font-mono">
-              <span className="text-purple-400 font-bold uppercase tracking-wider">Grasas</span>
-              <span className="text-slate-300 font-bold">{Math.round(totals.fats)}g / {macroGoals.fats}g</span>
-            </div>
-            <div className="w-full h-2 bg-black/40 rounded-full overflow-hidden border border-white/5">
-              <div 
-                className="h-full bg-purple-500 rounded-full shadow-[0_0_8px_rgba(139,92,246,0.6)]" 
-                style={{ width: `${Math.min(100, (totals.fats / macroGoals.fats) * 100)}%` }}
-              />
-            </div>
-          </div>
+          ))}
         </div>
 
-        {/* Quick Loggers */}
-        <div className="grid grid-cols-2 gap-4 mt-4">
-          
-          {/* Water logger */}
-          <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between text-xs font-mono text-slate-400 mb-2">
+        {/* Loggers rápidos */}
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          <div className="bg-surface-secondary rounded-2xl p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
               <span className="flex items-center space-x-1.5">
-                <Droplet className="w-4 h-4 text-cyan-400" />
+                <Droplet className="w-4 h-4 text-pixel-blue" />
                 <span>Hidratación</span>
               </span>
-              <span className="text-cyan-400 font-bold">{water}ml</span>
+              <span className="text-pixel-blue font-semibold tabular-nums">{water}ml</span>
             </div>
             <div className="flex space-x-2">
               <button
                 onClick={() => handleUpdateWater(250)}
-                className="flex-1 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500 hover:text-black transition-all font-mono text-[10px] font-bold cursor-pointer"
+                className="flex-1 py-1.5 rounded-xl bg-pixel-blue-light text-pixel-blue hover:brightness-95 transition-all text-xs font-semibold cursor-pointer"
               >
                 +250ml
               </button>
               <button
                 onClick={() => handleUpdateWater(500)}
-                className="flex-1 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500 hover:text-black transition-all font-mono text-[10px] font-bold cursor-pointer"
+                className="flex-1 py-1.5 rounded-xl bg-pixel-blue-light text-pixel-blue hover:brightness-95 transition-all text-xs font-semibold cursor-pointer"
               >
                 +500ml
               </button>
             </div>
           </div>
 
-          {/* Sleep logger */}
-          <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between text-xs font-mono text-slate-400 mb-2">
+          <div className="bg-surface-secondary rounded-2xl p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
               <span className="flex items-center space-x-1.5">
-                <Moon className="w-4 h-4 text-indigo-400" />
+                <Moon className="w-4 h-4 text-pixel-lavender" />
                 <span>Descanso</span>
               </span>
-              <span className="text-indigo-400 font-bold">{sleep} hs</span>
+              <span className="text-pixel-lavender font-semibold tabular-nums">{sleep} h</span>
             </div>
             <div className="flex items-center justify-between space-x-2">
               <button
                 onClick={() => handleUpdateSleep(-0.5)}
-                className="px-2.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all cursor-pointer text-xs font-bold"
+                className="px-3 py-1.5 rounded-xl bg-surface text-muted-foreground hover:text-foreground border border-border transition-all cursor-pointer text-xs font-semibold"
               >
-                -0.5h
+                −0.5h
               </button>
-              <span className="text-xs font-semibold text-slate-200">{sleep} hs</span>
               <button
                 onClick={() => handleUpdateSleep(0.5)}
-                className="px-2.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all cursor-pointer text-xs font-bold"
+                className="px-3 py-1.5 rounded-xl bg-surface text-muted-foreground hover:text-foreground border border-border transition-all cursor-pointer text-xs font-semibold"
               >
                 +0.5h
               </button>
             </div>
           </div>
-
         </div>
 
       </div>

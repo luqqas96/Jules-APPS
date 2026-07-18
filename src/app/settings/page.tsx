@@ -43,12 +43,12 @@ export default function SettingsPage() {
         <Button variant="ghost" size="icon" onClick={() => router.push("/")}>
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
         </Button>
-        <h1 className="text-2xl font-semibold">Settings</h1>
+        <h1 className="text-2xl font-semibold">Ajustes</h1>
       </div>
 
-      <Card className="mb-6 border-2 border-mint-200">
+      <Card className="mb-6">
         <CardHeader>
-          <CardTitle>User Profile</CardTitle>
+          <CardTitle>Perfil</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
@@ -79,11 +79,11 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>My Daily Goals</CardTitle>
+          <CardTitle>Metas diarias</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Calories (kcal)</label>
+            <label className="text-sm font-medium">Calorías (kcal)</label>
             <Input
               type="number"
               value={localGoals.calories}
@@ -91,7 +91,7 @@ export default function SettingsPage() {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Protein (g)</label>
+            <label className="text-sm font-medium">Proteína (g)</label>
             <Input
               type="number"
               value={localGoals.protein}
@@ -99,7 +99,7 @@ export default function SettingsPage() {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Carbs (g)</label>
+            <label className="text-sm font-medium">Carbohidratos (g)</label>
             <Input
               type="number"
               value={localGoals.carbs}
@@ -107,7 +107,7 @@ export default function SettingsPage() {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Fats (g)</label>
+            <label className="text-sm font-medium">Grasas (g)</label>
             <Input
               type="number"
               value={localGoals.fats}
@@ -121,7 +121,7 @@ export default function SettingsPage() {
       <DataExportCard />
 
       <Button className="w-full mt-4" size="lg" variant="mint" onClick={handleSave}>
-        Save Goals
+        Guardar metas
       </Button>
     </div>
   );

@@ -4,6 +4,37 @@ import { supabase } from '@/lib/supabase';
 
 export const maxDuration = 60; // Evitar error 504 Gateway Timeout de Vercel para llamadas de IA con multimedia
 
+// Intenta rescatar un JSON truncado (p. ej. cuando un número degenerado agotó los
+// tokens de salida). Elimina el último valor incompleto y cierra los strings, llaves
+// y corchetes que quedaron abiertos, de forma que al menos `action` y `message` se
+// puedan recuperar en lugar de devolver un 500.
+function repairTruncatedJson(text: string): string {
+  let s = text;
+  // Quitar una coma o el inicio de un par clave:valor colgante al final.
+  s = s.replace(/,\s*"[^"]*"\s*:\s*[-+]?[0-9.]*\s*$/g, "");
+  s = s.replace(/,\s*"[^"]*"\s*:?\s*$/g, "");
+  s = s.replace(/[,:\s]+$/g, "");
+
+  const stack: string[] = [];
+  let inString = false;
+  let escaped = false;
+  for (const ch of s) {
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === "{") stack.push("}");
+    else if (ch === "[") stack.push("]");
+    else if (ch === "}" || ch === "]") stack.pop();
+  }
+  if (inString) s += '"';
+  while (stack.length) s += stack.pop();
+  return s;
+}
+
 export async function POST(request: Request) {
   try {
     const { prompt, chatHistory, currentMeals, currentTotals, macroGoals, profile, image, audio, todayDate } = await request.json();
@@ -69,9 +100,11 @@ Instructions:
 - If making a recommendation, USE their historical foods from the dictionary above to suggest things they actually eat.
 - Keep messages concise and clear.
 - When action is "propose_meal", accurately calculate the macros (\`macros\` scaled to grams, plus \`baseMacros\` per 100g or unit base) for each proposed food item. Include \`analysis_description\` detailing why/how you estimated those numbers or what ingredients you identified in the photo/audio.
-- CRITICAL REGISTER RULES: If the user asks to add, record, log, or drink any food/beverage (e.g., "agrega a la cena...", "anota una cerveza...", "cena de ayer...", "500ml de cerveza Guinness"), you MUST choose "propose_meal" and populate the "proposed_foods" array with the details. Do NOT choose "chat" and do NOT wait for confirmation.
-- CRITICAL FOR DATES: If the user specifies that they ate or drank something on a different date (e.g., "ayer", "antier", "el 15 de julio", "el 2026-07-10"), calculate the exact target date (YYYY-MM-DD) relative to Today's Date (${today}) and return it in the \`target_date\` field. If no historical date is specified, use Today's Date (${today}).
+- CRITICAL REGISTER RULES: If the user asks to add, record, log, or drink any food/beverage (e.g., "agrega a la cena...", "anota una cerveza...", "500ml de cerveza Guinness"), you MUST choose "propose_meal" and populate the "proposed_foods" array with the details. Do NOT choose "chat" and do NOT wait for confirmation.
+- CRITICAL — TODAY ONLY: This assistant ONLY logs meals for the current day (${today}). Do NOT compute or return dates. If the user asks to log something for a past or future date (e.g. "ayer", "antier", "el 15 de julio"), do NOT propose the meal: instead choose "chat" and reply that meals can only be registered for today, and that past days must be edited from the History screen ("Historial").
 - IMPORTANT: For \`mealType\`, strictly choose one of these exact values: "Desayuno", "Almuerzo", "Merienda", or "Cena". If ambiguous, infer based on current time or suggest "Cena"/"Almuerzo".
+- CRITICAL NUMERIC RULES: ALL numeric values MUST be finite and rounded. Use whole integers for \`calories\` and \`grams\`, and at most ONE decimal place for \`protein\`, \`carbs\`, \`fats\` and other macros (e.g. 13.8, not 13.7777). NEVER output long or repeating decimals. If you convert volume (ml) to grams, round the result to a whole number (e.g. 15ml of olive oil ≈ 14g).
+- The \`weight\` field is ONLY for the "log_weight" action (the user's body weight in kg). NEVER include \`weight\` for "propose_meal", "modify_meals" or "chat".
 - ALWAYS respond in the language the user speaks or communicates to you in (likely Spanish).`;
 
     const macroSchema: Schema = {
@@ -101,26 +134,28 @@ Instructions:
       required: ["mealType", "name", "grams", "macros", "baseMacros"]
     };
 
+    // NOTE: property order matters — Gemini emits fields in this order. Keep the
+    // important food arrays first and the density-prone `weight` field LAST so a
+    // stray numeric loop can never truncate the response before the meal is generated.
     const responseSchema: Schema = {
         type: Type.OBJECT,
         properties: {
             action: { type: Type.STRING, enum: ["propose_meal", "modify_meals", "chat", "fetch_history", "log_weight"] },
             message: { type: Type.STRING, description: "The response message to the user." },
-            analysis_description: { type: Type.STRING, description: "Detailed breakdown of detected ingredients, weight estimation rationale, or analysis of the photo/audio." },
-            weight: { type: Type.NUMBER, description: "The weight in kg. Only provide if action is log_weight." },
-            target_date: { type: Type.STRING, description: "The calculated target date for the food log in YYYY-MM-DD format. Resolve relative dates ('ayer', 'hace 2 días') relative to today's date." },
-            history_scope: { type: Type.STRING, enum: ["all", "specific_date"], description: "The scope of history to fetch. Only use if action is fetch_history." },
-            history_date: { type: Type.STRING, description: "The specific date to fetch history for in YYYY-MM-DD format. Only use if action is fetch_history and scope is specific_date." },
+            proposed_foods: {
+                type: Type.ARRAY,
+                items: newFoodSchema,
+                description: "Array of proposed food items for the user to verify and approve. Use when action is propose_meal."
+            },
             new_foods: {
                 type: Type.ARRAY,
                 items: newFoodSchema,
                 description: "Array of food items to ADD directly. Only use if action is modify_meals."
             },
-            proposed_foods: {
-                type: Type.ARRAY,
-                items: newFoodSchema,
-                description: "Array of proposed food items for the user to verify and approve. Use when action is propose_meal."
-            }
+            analysis_description: { type: Type.STRING, description: "Detailed breakdown of detected ingredients, weight estimation rationale, or analysis of the photo/audio." },
+            history_scope: { type: Type.STRING, enum: ["all", "specific_date"], description: "The scope of history to fetch. Only use if action is fetch_history." },
+            history_date: { type: Type.STRING, description: "The specific date to fetch history for in YYYY-MM-DD format. Only use if action is fetch_history and scope is specific_date." },
+            weight: { type: Type.NUMBER, description: "The user's body weight in kg. ONLY provide if action is log_weight." }
         },
         required: ["action", "message"]
     };
@@ -149,7 +184,11 @@ Instructions:
       ],
       config: {
         responseMimeType: "application/json",
-        responseSchema: responseSchema
+        responseSchema: responseSchema,
+        // Tope de salida: una respuesta legítima cabe de sobra en 2048 tokens. Esto
+        // corta en seco cualquier bucle numérico degenerado (antes colgaba ~3 min).
+        maxOutputTokens: 2048,
+        temperature: 0.4
       }
     });
 
@@ -160,14 +199,28 @@ Instructions:
 
     let cleanText = resultText;
     try {
-      // Evitar desbordamiento de coma flotante por exponentes exagerados (ej. e-25000)
-      cleanText = cleanText.replace(/:\s*[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]{3,})/g, ": 0");
+      // Gemini a veces entra en un bucle degenerado y genera un número con miles de
+      // dígitos (p. ej. densidad 15/6750 = 0.00222…). Eso satura los tokens de salida
+      // y trunca el JSON. Neutralizamos esos números ANTES de parsear:
+      // 1) Notación científica con exponentes exagerados (ej. e-25000).
+      cleanText = cleanText.replace(/:\s*[-+]?[0-9]*\.?[0-9]+[eE][-+]?[0-9]{3,}/g, ": 0");
+      // 2) Parte decimal absurdamente larga -> recortar a 2 decimales.
+      cleanText = cleanText.replace(/(\d+\.\d{2})\d{4,}/g, "$1");
+      // 3) Secuencias enteras absurdamente largas -> 0.
+      cleanText = cleanText.replace(/(?<![\d.])\d{15,}(?![\d.])/g, "0");
     } catch (e) {
       console.warn("Failed to sanitize regex", e);
     }
 
     try {
-      const parsed = JSON.parse(cleanText);
+      let parsed;
+      try {
+        parsed = JSON.parse(cleanText);
+      } catch (firstErr) {
+        // Si el JSON quedó truncado (número gigante al final que se comió los tokens),
+        // intentamos repararlo cerrando strings/llaves/corchetes abiertos.
+        parsed = JSON.parse(repairTruncatedJson(cleanText));
+      }
 
       if (parsed.action === "fetch_history") {
           let fetchedHistory = "No history found.";
@@ -263,6 +316,14 @@ Instructions:
     }
   } catch (error: any) {
     console.error('Error in AI chat route:', error.message || error);
-    return NextResponse.json({ error: error.message || 'Failed to process AI chat' }, { status: 500 });
+    const raw = typeof error?.message === 'string' ? error.message : JSON.stringify(error || {});
+    // Cuota / límite de gasto de Gemini agotado.
+    if (error?.status === 429 || /RESOURCE_EXHAUSTED|spending cap|quota|429/i.test(raw)) {
+      return NextResponse.json(
+        { error: 'El asistente de IA alcanzó su límite de uso/cuota de Gemini. Revisa el spend cap del proyecto en Google AI Studio (ai.studio/spend) o usa otra API key.' },
+        { status: 429 }
+      );
+    }
+    return NextResponse.json({ error: raw || 'Failed to process AI chat' }, { status: 500 });
   }
 }

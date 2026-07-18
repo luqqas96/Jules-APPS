@@ -251,17 +251,17 @@ function AddFoodForm() {
           <Button variant="ghost" size="icon" onClick={() => router.push("/")} className="-ml-2">
             <XMarkIcon className="w-6 h-6" />
           </Button>
-          <h1 className="text-xl font-semibold">Add Food</h1>
+          <h1 className="text-xl font-semibold">Agregar comida</h1>
         </div>
         <select
           className="bg-surface-secondary border-none text-sm font-medium rounded-full px-3 py-1.5 focus:ring-0 cursor-pointer"
           value={meal}
           onChange={(e) => setMeal(e.target.value as MealType)}
         >
-          <option value="Desayuno">Breakfast</option>
-          <option value="Almuerzo">Lunch</option>
-          <option value="Merienda">Snack</option>
-          <option value="Cena">Dinner</option>
+          <option value="Desayuno">Desayuno</option>
+          <option value="Almuerzo">Almuerzo</option>
+          <option value="Merienda">Merienda</option>
+          <option value="Cena">Cena</option>
         </select>
       </div>
 
@@ -297,12 +297,12 @@ function AddFoodForm() {
         <div className="space-y-4">
           <div className="flex space-x-2">
             <Input
-              placeholder="Search for food or brand..."
+              placeholder="Buscá un alimento o marca..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleTextSearch()}
             />
-            <Button variant="mint" onClick={handleTextSearch}>Search</Button>
+            <Button variant="mint" onClick={handleTextSearch}>Buscar</Button>
           </div>
         </div>
       )}
@@ -311,7 +311,7 @@ function AddFoodForm() {
 
       {!loading && mode === "text" && !results && dictionary.length > 0 && (
         <div className="mt-4 animate-in fade-in slide-in-from-bottom-4">
-          <label className="block text-sm font-medium text-muted-foreground mb-2">Previous products for {getMealName(meal)}:</label>
+          <label className="block text-sm font-medium text-muted-foreground mb-2">Productos previos de {getMealName(meal)}:</label>
           <select
             className="w-full bg-surface border border-border/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-pixel-mint/50"
             onChange={(e) => {
@@ -333,7 +333,7 @@ function AddFoodForm() {
 
       {!loading && mode === "text" && !results && (!searchResultsList || searchResultsList.length === 0) && foodHistory && foodHistory.length > 0 && (
         <div className="mt-6 space-y-3 animate-in fade-in slide-in-from-bottom-4">
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">Recent:</h3>
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">Recientes:</h3>
           {foodHistory.map((item, idx) => (
             <Card key={idx} className="cursor-pointer hover:bg-surface-secondary transition-colors" onClick={() => handleSelectSearchResult({ name: item.name, macros: item.baseMacros })}>
               <CardContent className="p-4 flex justify-between items-center">
@@ -347,7 +347,7 @@ function AddFoodForm() {
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground text-right w-16">
-                  per 100g
+                  por 100g
                 </div>
               </CardContent>
             </Card>
@@ -360,11 +360,11 @@ function AddFoodForm() {
       {mode === "manual" && !results && (
         <Card className="mt-4 bg-surface animate-in fade-in">
           <CardContent className="p-6 space-y-4">
-            <h3 className="font-semibold text-lg text-center mb-2">Create Custom Food</h3>
-            <p className="text-xs text-muted-foreground text-center mb-4">Enter nutritional values per 100g (or 1 base portion).</p>
+            <h3 className="font-semibold text-lg text-center mb-2">Crear alimento propio</h3>
+            <p className="text-xs text-muted-foreground text-center mb-4">Ingresá los valores nutricionales por 100g (o 1 porción base).</p>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Product Name</label>
+              <label className="text-sm font-medium">Nombre del producto</label>
               <Input
                 placeholder="e.g. Homemade Cake"
                 value={manualForm.name}
@@ -375,19 +375,19 @@ function AddFoodForm() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Calories (kcal)</label>
+                <label className="text-sm font-medium">Calorías (kcal)</label>
                 <Input type="number" step="0.1" min="0" value={manualForm.calories} onChange={(e) => setManualForm({...manualForm, calories: e.target.value})} />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Protein (g)</label>
+                <label className="text-sm font-medium">Proteína (g)</label>
                 <Input type="number" step="0.1" min="0" value={manualForm.protein} onChange={(e) => setManualForm({...manualForm, protein: e.target.value})} />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Carbs (g)</label>
+                <label className="text-sm font-medium">Carbohidratos (g)</label>
                 <Input type="number" step="0.1" min="0" value={manualForm.carbs} onChange={(e) => setManualForm({...manualForm, carbs: e.target.value})} />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Fats (g)</label>
+                <label className="text-sm font-medium">Grasas (g)</label>
                 <Input type="number" step="0.1" min="0" value={manualForm.fats} onChange={(e) => setManualForm({...manualForm, fats: e.target.value})} />
               </div>
             </div>
@@ -453,13 +453,13 @@ function AddFoodForm() {
 
       {loading && (
         <div className="mt-8 text-center animate-pulse text-muted-foreground">
-          Searching for nutritional information...
+          Buscando información nutricional...
         </div>
       )}
 
       {!loading && searchResultsList && searchResultsList.length > 0 && mode === "text" && !results && (
         <div className="mt-6 space-y-3 animate-in fade-in slide-in-from-bottom-4">
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">Select an option:</h3>
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">Elegí una opción:</h3>
           {searchResultsList.map((item, idx) => (
             <Card key={idx} className="cursor-pointer hover:bg-surface-secondary transition-colors" onClick={() => handleSelectSearchResult(item)}>
               <CardContent className="p-4 flex justify-between items-center">
@@ -473,7 +473,7 @@ function AddFoodForm() {
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground text-right w-16">
-                  per 100g
+                  por 100g
                 </div>
               </CardContent>
             </Card>
