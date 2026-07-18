@@ -117,14 +117,6 @@ export default function Home() {
 
           <div className="flex space-x-2">
             <button
-              onClick={handleSheetsSync}
-              disabled={syncing}
-              className="flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 text-xs font-semibold cursor-pointer transition-all"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-              <span>{syncing ? "Sincronizando..." : "Sincronizar Sheets"}</span>
-            </button>
-            <button
               onClick={() => router.push("/settings")}
               className="p-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 cursor-pointer transition-all"
             >
