@@ -89,20 +89,77 @@ export function GlobalChatbot() {
     setShowLiveCamera(false);
   };
 
+  const compressImage = (file: File): Promise<{ data: string; previewUrl: string }> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+          const max_size = 1000;
+
+          if (width > height) {
+            if (width > max_size) {
+              height = Math.round(height * (max_size / width));
+              width = max_size;
+            }
+          } else {
+            if (height > max_size) {
+              width = Math.round(width * (max_size / height));
+              height = max_size;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+            const base64 = dataUrl.split(",")[1];
+            resolve({ data: base64, previewUrl: dataUrl });
+          } else {
+            reject(new Error("Failed to get canvas context"));
+          }
+        };
+        img.onerror = () => reject(new Error("Failed to load image"));
+        img.src = event.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const capturePhoto = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
 
-    const width = video.videoWidth || 640;
-    const height = video.videoHeight || 480;
+    let width = video.videoWidth || 640;
+    let height = video.videoHeight || 480;
+    const max_size = 1000;
+
+    if (width > height) {
+      if (width > max_size) {
+        height = Math.round(height * (max_size / width));
+        width = max_size;
+      }
+    } else {
+      if (height > max_size) {
+        width = Math.round(width * (max_size / height));
+        height = max_size;
+      }
+    }
+
     canvas.width = width;
     canvas.height = height;
 
     const ctx = canvas.getContext("2d");
     if (ctx) {
       ctx.drawImage(video, 0, 0, width, height);
-      const base64Url = canvas.toDataURL("image/jpeg", 0.85);
+      const base64Url = canvas.toDataURL("image/jpeg", 0.7);
       const base64 = base64Url.split(",")[1];
       setSelectedImage({
         data: base64,
@@ -113,16 +170,26 @@ export function GlobalChatbot() {
     }
   };
 
-  const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImagePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-       const base64Url = event.target?.result as string;
-       const base64 = base64Url.split(',')[1];
-       setSelectedImage({ data: base64, mimeType: file.type || 'image/jpeg', previewUrl: base64Url });
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressed = await compressImage(file);
+      setSelectedImage({
+        data: compressed.data,
+        mimeType: "image/jpeg",
+        previewUrl: compressed.previewUrl
+      });
+    } catch (err) {
+      console.error("Error compressing image:", err);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+         const base64Url = event.target?.result as string;
+         const base64 = base64Url.split(',')[1];
+         setSelectedImage({ data: base64, mimeType: file.type || 'image/jpeg', previewUrl: base64Url });
+      };
+      reader.readAsDataURL(file);
+    }
     e.target.value = "";
   };
 
@@ -178,6 +245,9 @@ export function GlobalChatbot() {
     setSelectedAudio(null);
     setLoading(true);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s de timeout
+
     try {
       // Calculate current totals
       const currentTotals = { calories: 0, protein: 0, carbs: 0, fats: 0 };
@@ -205,8 +275,11 @@ export function GlobalChatbot() {
           image: currentImg ? { data: currentImg.data, mimeType: currentImg.mimeType } : undefined,
           audio: currentAud ? { data: currentAud.data, mimeType: currentAud.mimeType } : undefined,
           todayDate: new Date().toLocaleDateString("en-CA"),
-        })
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       const data = await res.json();
       console.log("CLIENT RECEIVED AI DATA:", data);
@@ -250,8 +323,13 @@ export function GlobalChatbot() {
       } else {
         setMessages(prev => [...prev, { role: "assistant", text: `Error: ${data.error}` }]);
       }
-    } catch (error) {
-      setMessages(prev => [...prev, { role: "assistant", text: "Error de conexión con el asistente." }]);
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === "AbortError") {
+         setMessages(prev => [...prev, { role: "assistant", text: "El asistente está tardando más de lo habitual en responder. Por favor, reintenta tu mensaje." }]);
+      } else {
+         setMessages(prev => [...prev, { role: "assistant", text: "Error de conexión con el asistente." }]);
+      }
     } finally {
       setLoading(false);
     }

@@ -48,6 +48,8 @@ export async function POST(request: Request) {
     }
 
     const today = todayDate || new Date().toISOString().split("T")[0];
+    const goals = macroGoals || { calories: 2000, protein: 150, carbs: 250, fats: 70 };
+    const totals = currentTotals || { calories: 0, protein: 0, carbs: 0, fats: 0 };
 
     // 1. Fetch user's Dictionary (food_history) from Supabase
     let dictionaryContext = "No history available.";
@@ -83,9 +85,9 @@ You must decide between FOUR actions based on the user's latest prompt, image, o
 CONTEXT INFORMATION:
 User Profile: ${profile || "Unknown"}
 Today's Date: ${today}
-Macro Goals: Calories: ${macroGoals.calories}, Protein: ${macroGoals.protein}g, Carbs: ${macroGoals.carbs}g, Fats: ${macroGoals.fats}g
-Current Daily Consumption: Calories: ${Math.round(currentTotals?.calories || 0)}, Protein: ${Math.round(currentTotals?.protein || 0)}g, Carbs: ${Math.round(currentTotals?.carbs || 0)}g, Fats: ${Math.round(currentTotals?.fats || 0)}g
-Remaining Calories: ${Math.round(macroGoals.calories - (currentTotals?.calories || 0))}
+Macro Goals: Calories: ${goals.calories}, Protein: ${goals.protein}g, Carbs: ${goals.carbs}g, Fats: ${goals.fats}g
+Current Daily Consumption: Calories: ${Math.round(totals.calories || 0)}, Protein: ${Math.round(totals.protein || 0)}g, Carbs: ${Math.round(totals.carbs || 0)}g, Fats: ${Math.round(totals.fats || 0)}g
+Remaining Calories: ${Math.round((goals.calories || 2000) - (totals.calories || 0))}
 
 User's Historically Consumed Foods:
 ${dictionaryContext}
@@ -100,7 +102,7 @@ Instructions:
 - If making a recommendation, USE their historical foods from the dictionary above to suggest things they actually eat.
 - Keep messages concise and clear.
 - When action is "propose_meal", accurately calculate the macros (\`macros\` scaled to grams, plus \`baseMacros\` per 100g or unit base) for each proposed food item. Include \`analysis_description\` detailing why/how you estimated those numbers or what ingredients you identified in the photo/audio.
-- CRITICAL REGISTER RULES: If the user asks to add, record, log, or drink any food/beverage (e.g., "agrega a la cena...", "anota una cerveza...", "500ml de cerveza Guinness"), you MUST choose "propose_meal" and populate the "proposed_foods" array with the details. Do NOT choose "chat" and do NOT wait for confirmation.
+- CRITICAL REGISTER RULES: If the user asks to add, record, log, or drink any food/beverage (e.g., "agrega a la cena...", "anota una cerveza...", "500ml de cerveza Guinness"), you MUST choose "propose_meal" and populate the "proposed_foods" array with the details. You MUST populate the 'proposed_foods' array with at least one food item detailing the name, grams, mealType, and calculated macros. NEVER return an empty 'proposed_foods' array. Do NOT choose "chat" and do NOT wait for confirmation.
 - CRITICAL — TODAY ONLY: This assistant ONLY logs meals for the current day (${today}). Do NOT compute or return dates. If the user asks to log something for a past or future date (e.g. "ayer", "antier", "el 15 de julio"), do NOT propose the meal: instead choose "chat" and reply that meals can only be registered for today, and that past days must be edited from the History screen ("Historial").
 - IMPORTANT: For \`mealType\`, strictly choose one of these exact values: "Desayuno", "Almuerzo", "Merienda", or "Cena". If ambiguous, infer based on current time or suggest "Cena"/"Almuerzo".
 - CRITICAL NUMERIC RULES: ALL numeric values MUST be finite and rounded. Use whole integers for \`calories\` and \`grams\`, and at most ONE decimal place for \`protein\`, \`carbs\`, \`fats\` and other macros (e.g. 13.8, not 13.7777). NEVER output long or repeating decimals. If you convert volume (ml) to grams, round the result to a whole number (e.g. 15ml of olive oil ≈ 14g).
