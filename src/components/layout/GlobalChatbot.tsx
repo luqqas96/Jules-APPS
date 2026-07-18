@@ -17,6 +17,7 @@ interface ChatMessage {
   proposed_foods?: any[];
   analysis_description?: string;
   approved?: boolean;
+  target_date?: string;
 }
 
 export function GlobalChatbot() {
@@ -204,17 +205,20 @@ export function GlobalChatbot() {
           profile: activeProfile,
           image: currentImg ? { data: currentImg.data, mimeType: currentImg.mimeType } : undefined,
           audio: currentAud ? { data: currentAud.data, mimeType: currentAud.mimeType } : undefined,
+          todayDate: new Date().toLocaleDateString("en-CA"),
         })
       });
 
       const data = await res.json();
+      console.log("CLIENT RECEIVED AI DATA:", data);
       if (res.ok) {
         if (data.action === "propose_meal" && data.proposed_foods) {
            setMessages(prev => [...prev, {
               role: "assistant",
               text: data.message || "He analizado tu solicitud. Por favor revisa y aprueba el alimento propuesto:",
               proposed_foods: data.proposed_foods,
-              analysis_description: data.analysis_description
+              analysis_description: data.analysis_description,
+              target_date: data.target_date
            }]);
         } else if (data.action === "modify_meals" && data.meals) {
           const sanitizeEntries = (entries: any[]) => {
@@ -255,16 +259,54 @@ export function GlobalChatbot() {
     }
   };
 
-  const handleApproveProposal = (idx: number, foods: any[]) => {
-    foods.forEach(food => {
+  const handleApproveProposal = async (idx: number, foods: any[], targetDate?: string) => {
+    const getTodayStringLocal = () => {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const todayStr = getTodayStringLocal();
+    const date = targetDate || todayStr;
+    const isToday = date === todayStr;
+
+    for (const food of foods) {
        const mealType: MealType = food.mealType || "Cena";
-       addEntry(mealType, {
+       const entryData = {
           name: food.name,
           grams: food.grams || 100,
           macros: food.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 },
           baseMacros: food.baseMacros || food.macros || { calories: 0, protein: 0, carbs: 0, fats: 0 }
-       });
-    });
+       };
+
+       if (isToday) {
+          addEntry(mealType, entryData);
+       } else {
+          try {
+             const { supabase } = await import("@/lib/supabase");
+             await supabase.from('food_logs').insert({
+                profile: activeProfile,
+                date: date,
+                time: new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", hour12: false }),
+                meal_type: mealType,
+                product_name: entryData.name,
+                amount: entryData.grams,
+                calories: entryData.macros.calories || 0,
+                protein: entryData.macros.protein || 0,
+                carbs: entryData.macros.carbs || 0,
+                fats: entryData.macros.fats || 0,
+                cholesterol: food.macros?.cholesterol || 0,
+                sodium: food.macros?.sodium || 0,
+                sugar: food.macros?.sugar || 0,
+                calcium: food.macros?.calcium || 0
+             });
+          } catch (err) {
+             console.error("Error inserting historical food log:", err);
+          }
+       }
+    }
     setMessages(prev => prev.map((m, i) => i === idx ? { ...m, approved: true } : m));
   };
 
@@ -282,7 +324,7 @@ export function GlobalChatbot() {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-20 right-4 z-50 p-4 bg-pixel-mint text-white rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center focus:outline-none focus:ring-4 focus:ring-pixel-mint/30"
+            className="fixed bottom-20 right-4 z-[100] p-4 bg-pixel-mint text-white rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center focus:outline-none focus:ring-4 focus:ring-pixel-mint/30"
           >
             <ChatBubbleOvalLeftEllipsisIcon className="w-7 h-7" />
           </motion.button>
@@ -446,7 +488,7 @@ export function GlobalChatbot() {
                               variant="mint"
                               size="sm"
                               className="flex-1 text-xs py-2 shadow-sm font-semibold"
-                              onClick={() => handleApproveProposal(idx, msg.proposed_foods || [])}
+                              onClick={() => handleApproveProposal(idx, msg.proposed_foods || [], msg.target_date)}
                             >
                               ✅ Aprobar y Registrar
                             </Button>

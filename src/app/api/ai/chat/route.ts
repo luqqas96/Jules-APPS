@@ -6,7 +6,7 @@ export const maxDuration = 60; // Evitar error 504 Gateway Timeout de Vercel par
 
 export async function POST(request: Request) {
   try {
-    const { prompt, chatHistory, currentMeals, currentTotals, macroGoals, profile, image, audio } = await request.json();
+    const { prompt, chatHistory, currentMeals, currentTotals, macroGoals, profile, image, audio, todayDate } = await request.json();
 
     if (!prompt && !image && !audio) {
       return NextResponse.json({ error: 'Falta el prompt, imagen o audio del usuario' }, { status: 400 });
@@ -15,6 +15,8 @@ export async function POST(request: Request) {
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({ error: 'Falta configuración de API Key de Gemini' }, { status: 500 });
     }
+
+    const today = todayDate || new Date().toISOString().split("T")[0];
 
     // 1. Fetch user's Dictionary (food_history) from Supabase
     let dictionaryContext = "No history available.";
@@ -28,7 +30,7 @@ export async function POST(request: Request) {
 
        if (!error && dictRows && dictRows.length > 0) {
            const items = dictRows.map(row => {
-               const macros = (typeof row.base_macros === 'string' ? JSON.parse(row.base_macros || '{}') : row.base_macros) || {};
+               const macros = row.base_macros as any;
                return `- ${row.name} (${macros.calories || 0}kcal per 100g)`;
            });
            dictionaryContext = items.join("\n");
@@ -49,9 +51,10 @@ You must decide between FOUR actions based on the user's latest prompt, image, o
 
 CONTEXT INFORMATION:
 User Profile: ${profile || "Unknown"}
-Macro Goals: Calories: ${macroGoals?.calories || 2000}, Protein: ${macroGoals?.protein || 150}g, Carbs: ${macroGoals?.carbs || 200}g, Fats: ${macroGoals?.fats || 65}g
+Today's Date: ${today}
+Macro Goals: Calories: ${macroGoals.calories}, Protein: ${macroGoals.protein}g, Carbs: ${macroGoals.carbs}g, Fats: ${macroGoals.fats}g
 Current Daily Consumption: Calories: ${Math.round(currentTotals?.calories || 0)}, Protein: ${Math.round(currentTotals?.protein || 0)}g, Carbs: ${Math.round(currentTotals?.carbs || 0)}g, Fats: ${Math.round(currentTotals?.fats || 0)}g
-Remaining Calories: ${Math.round((macroGoals?.calories || 2000) - (currentTotals?.calories || 0))}
+Remaining Calories: ${Math.round(macroGoals.calories - (currentTotals?.calories || 0))}
 
 User's Historically Consumed Foods:
 ${dictionaryContext}
@@ -66,7 +69,8 @@ Instructions:
 - If making a recommendation, USE their historical foods from the dictionary above to suggest things they actually eat.
 - Keep messages concise and clear.
 - When action is "propose_meal", accurately calculate the macros (\`macros\` scaled to grams, plus \`baseMacros\` per 100g or unit base) for each proposed food item. Include \`analysis_description\` detailing why/how you estimated those numbers or what ingredients you identified in the photo/audio.
-- CRITICAL: If the user asks to add or log a food, OR sends a food image/audio, choose "propose_meal".
+- CRITICAL REGISTER RULES: If the user asks to add, record, log, or drink any food/beverage (e.g., "agrega a la cena...", "anota una cerveza...", "cena de ayer...", "500ml de cerveza Guinness"), you MUST choose "propose_meal" and populate the "proposed_foods" array with the details. Do NOT choose "chat" and do NOT wait for confirmation.
+- CRITICAL FOR DATES: If the user specifies that they ate or drank something on a different date (e.g., "ayer", "antier", "el 15 de julio", "el 2026-07-10"), calculate the exact target date (YYYY-MM-DD) relative to Today's Date (${today}) and return it in the \`target_date\` field. If no historical date is specified, use Today's Date (${today}).
 - IMPORTANT: For \`mealType\`, strictly choose one of these exact values: "Desayuno", "Almuerzo", "Merienda", or "Cena". If ambiguous, infer based on current time or suggest "Cena"/"Almuerzo".
 - ALWAYS respond in the language the user speaks or communicates to you in (likely Spanish).`;
 
@@ -104,6 +108,7 @@ Instructions:
             message: { type: Type.STRING, description: "The response message to the user." },
             analysis_description: { type: Type.STRING, description: "Detailed breakdown of detected ingredients, weight estimation rationale, or analysis of the photo/audio." },
             weight: { type: Type.NUMBER, description: "The weight in kg. Only provide if action is log_weight." },
+            target_date: { type: Type.STRING, description: "The calculated target date for the food log in YYYY-MM-DD format. Resolve relative dates ('ayer', 'hace 2 días') relative to today's date." },
             history_scope: { type: Type.STRING, enum: ["all", "specific_date"], description: "The scope of history to fetch. Only use if action is fetch_history." },
             history_date: { type: Type.STRING, description: "The specific date to fetch history for in YYYY-MM-DD format. Only use if action is fetch_history and scope is specific_date." },
             new_foods: {
@@ -153,8 +158,16 @@ Instructions:
        throw new Error("No response from Gemini");
     }
 
+    let cleanText = resultText;
     try {
-      const parsed = JSON.parse(resultText);
+      // Evitar desbordamiento de coma flotante por exponentes exagerados (ej. e-25000)
+      cleanText = cleanText.replace(/:\s*[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]{3,})/g, ": 0");
+    } catch (e) {
+      console.warn("Failed to sanitize regex", e);
+    }
+
+    try {
+      const parsed = JSON.parse(cleanText);
 
       if (parsed.action === "fetch_history") {
           let fetchedHistory = "No history found.";
